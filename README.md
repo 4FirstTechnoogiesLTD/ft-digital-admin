@@ -91,6 +91,30 @@ bunx supabase gen types typescript --project-id <ref> > src/lib/database.types.t
 
 ---
 
+## Docker
+
+The app is stateless — Postgres, Auth, Storage and Realtime all live in Supabase —
+so the image just serves the built Nitro node server on port 3000.
+
+```bash
+cp .env.example .env      # fill in Supabase + Resend values
+docker compose up --build
+# → http://localhost:3000
+```
+
+Or without compose:
+
+```bash
+docker build -t ft-digital-admin .
+docker run --rm -p 3000:3000 --env-file .env ft-digital-admin
+```
+
+The `Dockerfile` is multi-stage (Bun builds with `NITRO_PRESET=node-server`, a slim
+`node:22-alpine` runs it as a non-root user) and carries a `HEALTHCHECK` against
+`/login`. Override the host port with `ADMIN_PORT` when using compose. The Resend
+inbound webhook still needs a public URL — put the container behind your reverse
+proxy / tunnel and point the webhook at `https://<host>/api/resend/inbound`.
+
 ## How it fits together
 
 ```

@@ -1,0 +1,22 @@
+# Runs the built admin app. Data (Postgres, Auth, Storage, Realtime) lives in
+# Supabase — set its URL + keys, plus the Resend values, in `.env`
+# (copy from `.env.example`).
+#
+#   docker compose up --build
+#
+# Then open http://localhost:3000 and sign in with a seeded admin.
+
+services:
+  admin:
+    build:
+      context: .
+    image: ft-digital-admin
+    ports:
+      - "${ADMIN_PORT:-3000}:3000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+    restart: unless-stopped
