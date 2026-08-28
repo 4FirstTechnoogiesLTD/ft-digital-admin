@@ -1,0 +1,247 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 10px;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-signal: var(--signal);
+  --color-signal-foreground: var(--signal-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-border: var(--sidebar-border);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+}
+
+:root {
+  --radius: 4px;
+  --background: oklch(0.16 0.008 60);
+  --foreground: oklch(0.96 0.01 90);
+  --surface: oklch(0.2 0.01 60);
+  --surface-2: oklch(0.24 0.012 60);
+  --card: oklch(0.2 0.01 60);
+  --card-foreground: oklch(0.96 0.01 90);
+  --popover: oklch(0.2 0.01 60);
+  --popover-foreground: oklch(0.96 0.01 90);
+  --primary: oklch(0.96 0.01 90);
+  --primary-foreground: oklch(0.16 0.008 60);
+  --secondary: oklch(0.28 0.015 60);
+  --secondary-foreground: oklch(0.96 0.01 90);
+  --muted: oklch(0.24 0.012 60);
+  --muted-foreground: oklch(0.68 0.015 80);
+  --accent: oklch(0.78 0.14 65);
+  --accent-foreground: oklch(0.16 0.008 60);
+  --signal: oklch(0.635 0.155 44);
+  --signal-foreground: oklch(0.98 0.005 90);
+  --destructive: oklch(0.62 0.22 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.28 0.012 60);
+  --border-strong: oklch(0.4 0.015 60);
+  --input: oklch(0.28 0.012 60);
+  --ring: oklch(0.635 0.155 44);
+
+  --sidebar: oklch(0.18 0.009 60);
+  --sidebar-foreground: oklch(0.96 0.01 90);
+  --sidebar-accent: oklch(0.24 0.012 60);
+  --sidebar-border: oklch(0.28 0.012 60);
+
+  --chart-1: oklch(0.635 0.155 44);
+  --chart-2: oklch(0.78 0.14 65);
+  --chart-3: oklch(0.7 0.11 200);
+  --chart-4: oklch(0.72 0.14 140);
+  --chart-5: oklch(0.68 0.16 320);
+
+  --grid-line: color-mix(in oklab, var(--foreground) 6%, transparent);
+  --shadow-glow: 0 0 60px -10px color-mix(in oklab, var(--signal) 40%, transparent);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    background: var(--color-background);
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: var(--color-signal);
+    color: var(--color-signal-foreground);
+  }
+  /* thin, theme-matched scrollbars for dense admin surfaces */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--color-border-strong);
+    border: 2px solid var(--color-background);
+    border-radius: 999px;
+  }
+}
+
+@utility container-x {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+  max-width: 1400px;
+  @media (min-width: 768px) {
+    padding-inline: 2.5rem;
+  }
+}
+
+@utility text-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 0.92;
+}
+
+@utility text-mono-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+@utility grid-bg {
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 80px 80px;
+}
+
+@utility signal-underline {
+  background-image: linear-gradient(to right, var(--color-signal), var(--color-signal));
+  background-repeat: no-repeat;
+  background-size: 100% 2px;
+  background-position: 0 100%;
+  padding-bottom: 2px;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@utility animate-fade-up {
+  animation: fade-up 0.7s ease-out both;
+}
+
+/* Rich-text (Tiptap) editor + rendered content */
+@utility prose-editorial {
+  color: var(--color-foreground);
+  line-height: 1.7;
+
+  & p {
+    margin-block: 0.75em;
+  }
+  & h2 {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    line-height: 1.1;
+    margin-block: 1.2em 0.5em;
+  }
+  & h3 {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    margin-block: 1em 0.4em;
+  }
+  & a {
+    color: var(--color-signal);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  & ul,
+  & ol {
+    margin-block: 0.75em;
+    padding-left: 1.4em;
+  }
+  & ul {
+    list-style: disc;
+  }
+  & ol {
+    list-style: decimal;
+  }
+  & blockquote {
+    border-left: 2px solid var(--color-signal);
+    padding-left: 1em;
+    color: var(--color-muted-foreground);
+    font-style: italic;
+  }
+  & code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    background: var(--color-surface-2);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+  }
+  & strong {
+    color: var(--color-foreground);
+    font-weight: 600;
+  }
+}
+
+.tiptap:focus {
+  outline: none;
+}
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--color-muted-foreground);
+  pointer-events: none;
+  height: 0;
+}
