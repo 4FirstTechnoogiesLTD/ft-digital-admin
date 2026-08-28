@@ -13,6 +13,9 @@ dist-ssr
 .vinxi
 .tanstack/**
 .nitro
+.netlify
+.wrangler/
+.dev.vars
 *.local
 
 # Env
