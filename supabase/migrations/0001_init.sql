@@ -343,8 +343,8 @@ create policy messages_owner on messages for all
   using (owns_mailbox(mailbox_id)) with check (owns_mailbox(mailbox_id));
 
 create policy attachments_owner on attachments for all
-  using (exists (select 1 from messages m where m.id = message_id and owns_mailbox(m.mailbox_id)))
-  with check (exists (select 1 from messages m where m.id = message_id and owns_mailbox(m.mailbox_id)));
+  using (exists (select 1 from messages m where m.id = attachments.message_id and owns_mailbox(m.mailbox_id)))
+  with check (exists (select 1 from messages m where m.id = attachments.message_id and owns_mailbox(m.mailbox_id)));
 
 create policy drafts_owner on drafts for all
   using (owns_mailbox(mailbox_id)) with check (owns_mailbox(mailbox_id));

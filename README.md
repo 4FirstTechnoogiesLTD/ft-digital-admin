@@ -1,12 +1,12 @@
 # ft-digital-admin
 
 Standalone admin center for the **4First Technologies** marketing site
-([`ft-digital-home`](../ft-digital-home)). Two things live here:
+([`web-unwrapped-3d`](../web-unwrapped-3d)). Two things live here:
 
 1. **CMS** — edit every piece of content the marketing site renders (page copy,
    SEO/meta, service & case-study collections, contact details, media). Publishing
-   here updates `4firsttech.com` live.
-2. **Team mailbox** — each member gets a personal address on `mail.4firsttech.com`
+   here updates `4firsttechnologies.com` live.
+2. **Team mailbox** — each member gets a personal address on `4firsttechnologies.com`
    and can send / receive real email (threads, attachments, labels, drafts),
    powered by [Resend](https://resend.com) inbound + outbound.
 
@@ -46,18 +46,19 @@ Copy these into `.env`:
 
 ### 2. Resend
 
-- Verify the subdomain **`mail.4firsttech.com`** (Domains → Add Domain) and add the
-  SPF / DKIM / DMARC records it shows.
+- Verify **`4firsttechnologies.com`** (Domains → Add Domain) and add the SPF / DKIM /
+  DMARC records it shows.
 - Emails → Receiving → copy the inbound address, add an **`MX`** record on
-  `mail.4firsttech.com` with the *lowest* priority.
+  `4firsttechnologies.com` pointing at it. (Safe on the apex here because the domain
+  has no other mail — otherwise use a `mail.` subdomain so you don't hijack it.)
 - Webhooks → add a webhook for **`email.received`** → `https://<app-url>/api/resend/inbound`.
   Copy the signing secret.
 
 ```
 RESEND_API_KEY=re_...
 RESEND_WEBHOOK_SECRET=whsec_...
-MAIL_DOMAIN=mail.4firsttech.com
-SHARED_MAILBOX_OWNER=hello@mail.4firsttech.com   # inbound with no matching mailbox lands here
+MAIL_DOMAIN=4firsttechnologies.com
+SHARED_MAILBOX_OWNER=hello@4firsttechnologies.com   # inbound with no matching mailbox lands here
 APP_URL=http://localhost:3000
 ```
 
@@ -118,7 +119,7 @@ proxy / tunnel and point the webhook at `https://<host>/api/resend/inbound`.
 ## How it fits together
 
 ```
-ft-digital-home (marketing site)        ft-digital-admin (this repo)
+web-unwrapped-3d (marketing site)       ft-digital-admin (this repo)
   SSR loaders read PUBLISHED content       CMS write UI + audit log
   via the anon key + RLS, with              Supabase email/password auth
   in-code fallbacks (src/content/           per-user mailbox:

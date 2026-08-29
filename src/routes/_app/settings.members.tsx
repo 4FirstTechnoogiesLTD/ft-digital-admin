@@ -181,7 +181,7 @@ function MembersPage() {
               <ShieldCheck className="mt-0.5 size-3.5 shrink-0" />
               They&apos;ll get an email to set a password. A mailbox at{" "}
               <span className="text-foreground">
-                {email ? email.split("@")[0] : "name"}@mail.4firsttech.com
+                {email ? email.split("@")[0] : "name"}@4firsttechnologies.com
               </span>{" "}
               is provisioned automatically.
             </p>

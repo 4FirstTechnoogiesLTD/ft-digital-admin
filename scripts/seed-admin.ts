@@ -24,7 +24,7 @@ const name = arg("name") ?? email?.split("@")[0] ?? "Admin";
 const password = arg("password") ?? cryptoRandom();
 const url = process.env.SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const mailDomain = process.env.MAIL_DOMAIN ?? "mail.4firsttech.com";
+const mailDomain = process.env.MAIL_DOMAIN ?? "4firsttechnologies.com";
 
 if (!email) {
   console.error("Usage: bun run seed-admin -- --email you@company.com --name \"Your Name\"");

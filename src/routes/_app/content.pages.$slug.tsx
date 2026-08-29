@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_app/content/pages/$slug")({
   component: PageEditor,
 });
 
-const SITE_URL = "https://4firsttech.com";
+const SITE_URL = "https://4firsttechnologies.com";
 
 function PageEditor() {
   const { slug } = Route.useParams();

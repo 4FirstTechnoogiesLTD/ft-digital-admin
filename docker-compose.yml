@@ -1,10 +1,12 @@
 # Runs the built admin app. Data (Postgres, Auth, Storage, Realtime) lives in
-# Supabase — set its URL + keys, plus the Resend values, in `.env`
-# (copy from `.env.example`).
+# Supabase — copy `.env.example` to `.env` and fill it in FIRST, then:
 #
+#   cp .env.example .env && $EDITOR .env
 #   docker compose up --build
 #
-# Then open http://localhost:3000 and sign in with a seeded admin.
+# All config is read at RUNTIME from .env (the browser gets SUPABASE_URL /
+# SUPABASE_ANON_KEY via a small inline bootstrap in the page head), so the
+# image is env-agnostic — no rebuild needed when values change.
 
 services:
   admin:

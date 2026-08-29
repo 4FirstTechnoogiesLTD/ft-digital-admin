@@ -1,7 +1,7 @@
 # Deploying ft-digital-admin
 
 Target: **Netlify** (separate site from the marketing site), domain
-`admin.4firsttech.com`.
+`admin.4firsttechnologies.com`.
 
 ## 1. Supabase (shared by both apps)
 
@@ -12,17 +12,18 @@ Target: **Netlify** (separate site from the marketing site), domain
 3. Confirm the storage buckets exist: **`media`** (public) and
    **`mail-attachments`** (private).
 4. Auth → Providers → Email: enable **Email** provider, turn **off** "Enable email
-   signups" (invite-only). Set the Site URL to `https://admin.4firsttech.com` and
+   signups" (invite-only). Set the Site URL to `https://admin.4firsttechnologies.com` and
    add it to the redirect allow-list.
 
 ## 2. Resend
 
-1. Domains → add **`mail.4firsttech.com`**; add the SPF / DKIM / DMARC DNS records.
+1. Domains → add **`4firsttechnologies.com`**; add the SPF / DKIM / DMARC DNS records.
 2. Emails → Receiving → copy the inbound address; add an **MX** record on
-   `mail.4firsttech.com` pointing at it with the **lowest priority number**
-   (keep the root `4firsttech.com` MX for Google/M365 untouched).
+   `4firsttechnologies.com` pointing at it. (Fine on the apex — the domain has no
+   other email. If that ever changes, move receiving to a `mail.` subdomain so the
+   Resend MX doesn't capture real mail.)
 3. Webhooks → New webhook → event **`email.received`** → URL
-   `https://admin.4firsttech.com/api/resend/inbound`. Copy the **signing secret**.
+   `https://admin.4firsttechnologies.com/api/resend/inbound`. Copy the **signing secret**.
 
 ## 3. Netlify
 
@@ -39,12 +40,12 @@ Target: **Netlify** (separate site from the marketing site), domain
    VITE_SUPABASE_ANON_KEY     (= SUPABASE_ANON_KEY)
    RESEND_API_KEY
    RESEND_WEBHOOK_SECRET
-   MAIL_DOMAIN=mail.4firsttech.com
-   SHARED_MAILBOX_OWNER=hello@mail.4firsttech.com
-   APP_URL=https://admin.4firsttech.com
+   MAIL_DOMAIN=4firsttechnologies.com
+   SHARED_MAILBOX_OWNER=hello@4firsttechnologies.com
+   APP_URL=https://admin.4firsttechnologies.com
    ```
 
-3. Domain management → add `admin.4firsttech.com`, point the CNAME at Netlify.
+3. Domain management → add `admin.4firsttechnologies.com`, point the CNAME at Netlify.
 4. Trigger a deploy.
 
 ## 4. First admin
@@ -52,10 +53,10 @@ Target: **Netlify** (separate site from the marketing site), domain
 Run locally against the production project (service-role key in `.env`):
 
 ```bash
-bun run seed-admin -- --email founder@4firsttech.com --name "Founder Name"
+bun run seed-admin -- --email founder@4firsttechnologies.com --name "Founder Name"
 ```
 
-Sign in at `https://admin.4firsttech.com/login`, then invite the rest of the team
+Sign in at `https://admin.4firsttechnologies.com/login`, then invite the rest of the team
 from **Settings → Members** (each invite provisions their mailbox automatically).
 
 ## 5. Wire the marketing site
@@ -74,7 +75,7 @@ breaks the live site.
 ## Smoke test
 
 - [ ] Sign in to the admin, dashboard loads with live counts.
-- [ ] Edit an About discipline → **Publish** → reload `4firsttech.com/about` → change shows.
+- [ ] Edit an About discipline → **Publish** → reload `4firsttechnologies.com/about` → change shows.
 - [ ] Clear that collection's rows → the site still renders the original copy (fallback).
 - [ ] Compose an email from **Mail** to a personal address → it arrives; a `sent` row appears.
 - [ ] Reply from that personal address → within a few seconds it appears in the

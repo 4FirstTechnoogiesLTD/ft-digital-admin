@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
+import { publicEnvScript } from "@/lib/env";
 
 import appCss from "../styles.css?url";
 
@@ -50,6 +51,10 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className="dark">
       <head>
+        <script
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: publicEnvScript() }}
+        />
         <HeadContent />
       </head>
       <body>

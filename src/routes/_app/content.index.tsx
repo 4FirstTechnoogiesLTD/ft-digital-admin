@@ -37,7 +37,7 @@ function ContentIndex() {
       <PageHeader
         eyebrow="§ Content"
         title="Pages & Collections"
-        description="Everything the marketing site renders. Publishing here updates 4firsttech.com."
+        description="Everything the marketing site renders. Publishing here updates 4firsttechnologies.com."
       />
 
       <div className="space-y-10 px-6 py-8 md:px-10">
