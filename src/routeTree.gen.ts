@@ -13,6 +13,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppMailRouteImport } from './routes/_app/mail'
+import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppContentIndexRouteImport } from './routes/_app/content.index'
 import { Route as AppContentMediaRouteImport } from './routes/_app/content.media'
 import { Route as AppMailIndexRouteImport } from './routes/_app/mail.index'
@@ -42,6 +43,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppMailRoute = AppMailRouteImport.update({
   id: '/mail',
   path: '/mail',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => AppRoute,
 } as any)
 const AppContentIndexRoute = AppContentIndexRouteImport.update({
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
   '/mail': typeof AppMailRouteWithChildren
+  '/profile': typeof AppProfileRoute
   '/content/media': typeof AppContentMediaRoute
   '/mail/$threadId': typeof AppMailThreadIdRoute
   '/mail/settings': typeof AppMailSettingsRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/profile': typeof AppProfileRoute
   '/': typeof AppIndexRoute
   '/content/media': typeof AppContentMediaRoute
   '/mail/$threadId': typeof AppMailThreadIdRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/mail': typeof AppMailRouteWithChildren
+  '/_app/profile': typeof AppProfileRoute
   '/_app/': typeof AppIndexRoute
   '/_app/content/media': typeof AppContentMediaRoute
   '/_app/mail/$threadId': typeof AppMailThreadIdRoute
@@ -156,6 +165,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/mail'
+    | '/profile'
     | '/content/media'
     | '/mail/$threadId'
     | '/mail/settings'
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/profile'
     | '/'
     | '/content/media'
     | '/mail/$threadId'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/login'
     | '/_app/mail'
+    | '/_app/profile'
     | '/_app/'
     | '/_app/content/media'
     | '/_app/mail/$threadId'
@@ -235,6 +247,13 @@ declare module '@tanstack/react-router' {
       path: '/mail'
       fullPath: '/mail'
       preLoaderRoute: typeof AppMailRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/profile': {
+      id: '/_app/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/content/': {
@@ -334,6 +353,7 @@ const AppMailRouteWithChildren =
 
 interface AppRouteChildren {
   AppMailRoute: typeof AppMailRouteWithChildren
+  AppProfileRoute: typeof AppProfileRoute
   AppIndexRoute: typeof AppIndexRoute
   AppContentMediaRoute: typeof AppContentMediaRoute
   AppSettingsMailRoute: typeof AppSettingsMailRoute
@@ -346,6 +366,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppMailRoute: AppMailRouteWithChildren,
+  AppProfileRoute: AppProfileRoute,
   AppIndexRoute: AppIndexRoute,
   AppContentMediaRoute: AppContentMediaRoute,
   AppSettingsMailRoute: AppSettingsMailRoute,

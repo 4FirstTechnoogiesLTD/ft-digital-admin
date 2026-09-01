@@ -154,7 +154,11 @@ function Sidebar({
       </nav>
 
       <div className="border-t border-border p-3">
-        <div className="flex items-center gap-3 rounded-md px-2 py-2">
+        <Link
+          to="/profile"
+          onClick={onNavigate}
+          className="flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-sidebar-accent"
+        >
           <span className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-2 text-xs font-medium uppercase">
             {(member.fullName || member.email).slice(0, 2)}
           </span>
@@ -162,14 +166,15 @@ function Sidebar({
             <div className="truncate text-sm">{member.fullName || member.email}</div>
             <div className="text-mono-label truncate">{member.role}</div>
           </div>
-          <button
-            onClick={handleSignOut}
-            aria-label="Sign out"
-            className="text-muted-foreground transition-colors hover:text-destructive"
-          >
-            <LogOut className="size-4" />
-          </button>
-        </div>
+        </Link>
+        <button
+          onClick={handleSignOut}
+          aria-label="Sign out"
+          className="mt-2 w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-destructive"
+        >
+          <LogOut className="size-4" />
+          Sign out
+        </button>
       </div>
     </aside>
   );
