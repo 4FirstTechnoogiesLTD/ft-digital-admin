@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
 import { fetchSessionMember } from "@/fn/auth";
@@ -19,7 +19,14 @@ function ProfilePage() {
     queryFn: () => fetchSessionMember(),
   });
 
-  const [fullName, setFullName] = useState(member?.fullName ?? "");
+  const [fullName, setFullName] = useState("");
+
+  // Update fullName when member data loads
+  useEffect(() => {
+    if (member?.fullName) {
+      setFullName(member.fullName);
+    }
+  }, [member?.fullName]);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
