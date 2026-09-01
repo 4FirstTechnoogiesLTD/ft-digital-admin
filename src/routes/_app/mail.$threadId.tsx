@@ -13,6 +13,7 @@ import {
   Forward,
   Paperclip,
   ChevronLeft,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getThread, setThreadFlags, setThreadRead } from "@/fn/mail";
@@ -35,6 +36,7 @@ function ThreadView() {
   const router = useRouter();
   const qc = useQueryClient();
   const [mode, setMode] = useState<Mode>(null);
+  const [expandedHeaders, setExpandedHeaders] = useState<Record<string, boolean>>({});
 
   const { data } = useQuery({
     queryKey: ["mail", "thread", threadId],
@@ -180,28 +182,46 @@ function ThreadView() {
 
         <ul className="divide-y divide-border">
           {messages.map((m) => (
-            <li key={m.id} className="px-6 py-5">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <div>
-                  <span className="text-sm font-medium">{m.from_name ?? m.from_addr}</span>
-                  <span className="ml-2 text-xs text-muted-foreground">{m.from_addr}</span>
-                  {m.direction === "outbound" && (
-                    <span className="text-mono-label ml-2 text-signal">sent</span>
+            <li key={m.id} className="border-b border-border px-6 py-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-1 flex-1">
+                  <div className="flex items-baseline justify-between gap-2 mb-2">
+                    <span className="font-medium">{m.from_name ?? m.from_addr}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(m.created_at), "PP p")}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mb-3">{m.from_addr}</div>
+
+                  {/* Headers toggle */}
+                  <button
+                    onClick={() => setExpandedHeaders(p => ({ ...p, [m.id]: !p[m.id] }))}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition mb-2"
+                  >
+                    <ChevronDown className={cn("size-3 transition", expandedHeaders[m.id] && "rotate-180")} />
+                    Details
+                  </button>
+
+                  {/* Expanded headers */}
+                  {expandedHeaders[m.id] && (
+                    <div className="mt-2 space-y-1 border-l border-border pl-3 text-xs text-muted-foreground">
+                      <div><span className="font-medium">From:</span> {m.from_addr}{m.from_name && ` (${m.from_name})`}</div>
+                      <div><span className="font-medium">To:</span> {(Array.isArray(m.to_addrs) ? (m.to_addrs as any[]) : []).map((a) => a.email).join(", ")}</div>
+                      {(Array.isArray(m.cc_addrs) ? (m.cc_addrs as any[]) : []).length > 0 && (
+                        <div><span className="font-medium">CC:</span> {(m.cc_addrs as any[]).map((a) => a.email).join(", ")}</div>
+                      )}
+                      {(Array.isArray(m.bcc_addrs) ? (m.bcc_addrs as any[]) : []).length > 0 && (
+                        <div><span className="font-medium">BCC:</span> {(m.bcc_addrs as any[]).map((a) => a.email).join(", ")}</div>
+                      )}
+                      <div><span className="font-medium">Date:</span> {format(new Date(m.created_at), "PPP p O")}</div>
+                      <div><span className="font-medium">Subject:</span> {m.subject}</div>
+                    </div>
                   )}
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  {format(new Date(m.created_at), "PP p")}
-                </span>
-              </div>
-              <div className="text-mono-label mt-0.5">
-                to{" "}
-                {(Array.isArray(m.to_addrs) ? (m.to_addrs as any[]) : [])
-                  .map((a) => a.email)
-                  .join(", ")}
               </div>
 
               <div
-                className="prose-editorial mt-4 max-w-none text-sm [&_a]:text-signal [&_img]:max-w-full"
+                className="prose-editorial max-w-none text-sm [&_a]:text-signal [&_img]:max-w-full"
                 dangerouslySetInnerHTML={{
                   __html: sanitizeEmailHtml(
                     m.html ?? (m.text ? m.text.replace(/\n/g, "<br>") : "<em>No content</em>"),

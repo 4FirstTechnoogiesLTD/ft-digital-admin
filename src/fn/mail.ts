@@ -135,6 +135,7 @@ export const getThread = createServerFn({ method: "GET" })
       .from("messages")
       .select("*")
       .eq("thread_id", data.threadId)
+      .eq("folder", thread.folder)
       .order("created_at", { ascending: true });
 
     const ids = (messages ?? []).map((m) => m.id);
