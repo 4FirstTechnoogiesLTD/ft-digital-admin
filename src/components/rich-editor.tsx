@@ -55,7 +55,7 @@ export function RichEditor({ value, onChange, placeholder, className, minHeight 
 
   return (
     <div className={cn("border border-border bg-background/50", className)}>
-      <div className="flex flex-wrap items-center gap-0.5 border-b border-border p-1">
+      <div className="sticky top-0 z-10 flex flex-wrap items-center gap-0.5 border-b border-border bg-background p-1">
         <Btn on={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
           <Bold className="size-3.5" />
         </Btn>
