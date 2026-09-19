@@ -1,13 +1,19 @@
 import { useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import type { JSONContent } from "@tiptap/react";
 import { Paperclip, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { RichEditor } from "@/components/rich-editor";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { docToHtml } from "@/lib/tiptap";
-import { plainTextFromHtml, parseAddressList } from "@/lib/mail-utils";
+import { plainTextFromHtml, parseAddressList, sanitizeEmailHtml } from "@/lib/mail-utils";
 import { sendMessage } from "@/fn/mail";
 import { EMPTY_DOC } from "@/lib/tiptap";
+import { cn } from "@/lib/utils";
+
+/** White "paper" styling for email content, so senders' dark text stays readable. */
+export const EMAIL_LIGHT_SURFACE =
+  "bg-white text-neutral-900 [color-scheme:light] [&_.tiptap]:text-neutral-900 [&_strong]:text-neutral-900 [&_blockquote]:text-neutral-600 [&_a]:text-blue-700 [&_a]:underline";
 
 export interface ComposerDefaults {
   to?: string;
@@ -23,6 +29,8 @@ interface Props {
   mailbox: { address: string; displayName: string; signature?: JSONContent | null } | null;
   defaults?: ComposerDefaults;
   compact?: boolean;
+  /** Render the message body, signature and quoted text on a white background. */
+  lightBody?: boolean;
   onSent: (threadId: string) => void;
   onCancel?: () => void;
 }
@@ -34,7 +42,14 @@ interface PendingAttachment {
   uploading: boolean;
 }
 
-export function MessageComposer({ mailbox, defaults, compact, onSent, onCancel }: Props) {
+export function MessageComposer({
+  mailbox,
+  defaults,
+  compact,
+  lightBody,
+  onSent,
+  onCancel,
+}: Props) {
   const [to, setTo] = useState(defaults?.to ?? "");
   const [cc, setCc] = useState(defaults?.cc ?? "");
   const [showCc, setShowCc] = useState(Boolean(defaults?.cc));
@@ -42,6 +57,8 @@ export function MessageComposer({ mailbox, defaults, compact, onSent, onCancel }
   const [body, setBody] = useState<JSONContent>(defaults?.body ?? EMPTY_DOC);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [sending, setSending] = useState(false);
+  const [includeSignature, setIncludeSignature] = useState(true);
+  const [showQuoted, setShowQuoted] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function handleFiles(files: FileList | null) {
@@ -94,7 +111,7 @@ export function MessageComposer({ mailbox, defaults, compact, onSent, onCancel }
       if (defaults?.quotedHtml) {
         html += `<br><blockquote>${defaults.quotedHtml}</blockquote>`;
       }
-      if (mailbox?.signature) {
+      if (mailbox?.signature && includeSignature) {
         html += `<br>--<br>${docToHtml(mailbox.signature)}`;
       }
       const res = await sendMessage({
@@ -170,7 +187,71 @@ export function MessageComposer({ mailbox, defaults, compact, onSent, onCancel }
         onChange={setBody}
         placeholder="Write your message…"
         minHeight={compact ? 120 : 200}
+        contentClassName={cn(lightBody && EMAIL_LIGHT_SURFACE)}
       />
+
+      {defaults?.quotedHtml && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowQuoted((v) => !v)}
+            className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            {showQuoted ? "Hide quoted message" : "Show quoted message"}
+          </button>
+          {showQuoted && (
+            <div
+              className={cn(
+                "mt-2 max-h-80 max-w-none overflow-y-auto border border-border p-3 text-xs [&_img]:max-w-full",
+                lightBody ? EMAIL_LIGHT_SURFACE : "prose-editorial [&_a]:text-signal",
+              )}
+              dangerouslySetInnerHTML={{ __html: sanitizeEmailHtml(defaults.quotedHtml) }}
+            />
+          )}
+        </div>
+      )}
+
+      {mailbox?.signature ? (
+        <div className="border border-dashed border-border bg-surface/40 px-3 py-2">
+          <div className="flex items-center justify-between gap-2">
+            <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={includeSignature}
+                onChange={(e) => setIncludeSignature(e.target.checked)}
+                className="accent-signal"
+              />
+              Append my signature
+            </label>
+            <Link
+              to="/mail/settings"
+              className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              Edit
+            </Link>
+          </div>
+          {includeSignature && (
+            <div
+              className={cn(
+                "mt-2 max-w-none border-t border-border pt-2 text-xs",
+                lightBody
+                  ? cn(EMAIL_LIGHT_SURFACE, "px-2 pb-2")
+                  : "prose-editorial text-muted-foreground [&_a]:text-signal",
+              )}
+              dangerouslySetInnerHTML={{
+                __html: sanitizeEmailHtml(docToHtml(mailbox.signature)),
+              }}
+            />
+          )}
+        </div>
+      ) : (
+        <Link
+          to="/mail/settings"
+          className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        >
+          + Add an email signature
+        </Link>
+      )}
 
       {attachments.length > 0 && (
         <ul className="flex flex-wrap gap-2">

@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseServerClient, getSupabaseAdminClient } from "@/lib/supabase/server";
 import { serverEnv } from "@/lib/env";
 import { sendEmail } from "@/lib/resend";
 import { normalizeSubject, replySubject, snippetFromText, type Addr } from "@/lib/mail-utils";
@@ -156,10 +156,13 @@ export const getThread = createServerFn({ method: "GET" })
         }),
     );
 
+    const avatars = await avatarsForAddresses((messages ?? []).map((m) => m.from_addr as string));
+
     return {
       thread,
       messages: (messages ?? []).map((m) => ({
         ...m,
+        fromAvatarUrl: avatars[String(m.from_addr).toLowerCase()] ?? null,
         attachments: (attachments ?? [])
           .filter((a) => a.message_id === m.id)
           .map((a) => ({ ...a, signedUrl: signed[a.id] ?? null })),
@@ -401,3 +404,33 @@ export const createLabel = createServerFn({ method: "POST" })
   });
 
 export { normalizeSubject, replySubject, asAddrArray };
+
+/**
+ * Maps sender addresses to team profile images. Runs with the service role
+ * because `mailboxes` is owner-only under RLS — it reads nothing but the
+ * address → avatar pairing, and only for addresses already in the thread.
+ */
+async function avatarsForAddresses(addresses: string[]): Promise<Record<string, string>> {
+  const wanted = [...new Set(addresses.map((a) => a.toLowerCase()).filter(Boolean))];
+  if (!wanted.length) return {};
+  const admin = getSupabaseAdminClient();
+  const { data: boxes } = await admin
+    .from("mailboxes")
+    .select("address, user_id")
+    .in("address", wanted);
+  if (!boxes?.length) return {};
+  const { data: members } = await admin
+    .from("members")
+    .select("user_id, avatar_url")
+    .in(
+      "user_id",
+      boxes.map((b) => b.user_id),
+    );
+  const byUser = new Map((members ?? []).map((m) => [m.user_id, m.avatar_url]));
+  const out: Record<string, string> = {};
+  for (const b of boxes) {
+    const url = byUser.get(b.user_id);
+    if (url) out[b.address.toLowerCase()] = url;
+  }
+  return out;
+}

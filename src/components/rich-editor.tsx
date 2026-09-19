@@ -22,10 +22,19 @@ interface Props {
   onChange: (doc: JSONContent) => void;
   placeholder?: string;
   className?: string;
+  /** Classes for the writing area below the toolbar. */
+  contentClassName?: string;
   minHeight?: number;
 }
 
-export function RichEditor({ value, onChange, placeholder, className, minHeight = 160 }: Props) {
+export function RichEditor({
+  value,
+  onChange,
+  placeholder,
+  className,
+  contentClassName,
+  minHeight = 160,
+}: Props) {
   const editor = useEditor({
     extensions: [
       ...tiptapExtensions,
@@ -123,7 +132,7 @@ export function RichEditor({ value, onChange, placeholder, className, minHeight 
           <Redo2 className="size-3.5" />
         </Btn>
       </div>
-      <div className="p-3">
+      <div className={cn("p-3", contentClassName)}>
         <EditorContent editor={editor} />
       </div>
     </div>

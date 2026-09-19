@@ -1,9 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Loader2, ImagePlus } from "lucide-react";
 import { fetchSessionMember } from "@/fn/auth";
+import { updateMyProfile } from "@/fn/profile";
+import { UserAvatar } from "@/components/user-avatar";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +38,8 @@ function ProfilePage() {
     confirm: false,
   });
   const [loading, setLoading] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarRef = useRef<HTMLInputElement>(null);
 
   async function handleUpdateProfile() {
     if (!fullName.trim()) {
@@ -45,20 +49,60 @@ function ProfilePage() {
 
     setLoading(true);
     try {
-      const supabase = getSupabaseBrowserClient();
-      const { error } = await supabase
-        .from("members")
-        .update({ full_name: fullName })
-        .eq("user_id", member?.userId);
-
-      if (error) throw error;
+      await updateMyProfile({ data: { fullName } });
       toast.success("Profile updated successfully");
       qc.invalidateQueries({ queryKey: ["session", "member"] });
+      qc.invalidateQueries({ queryKey: ["mail"] });
     } catch (err) {
       console.error(err);
       toast.error("Failed to update profile");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function uploadAvatar(file?: File) {
+    if (!file || !member) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image is larger than 2 MB");
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = member.userId + "/avatar-" + Date.now() + "." + ext;
+      const { error: upErr } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { contentType: file.type, upsert: true });
+      if (upErr) throw upErr;
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("avatars").getPublicUrl(path);
+      await updateMyProfile({ data: { avatarUrl: publicUrl } });
+      toast.success("Profile photo updated");
+      qc.invalidateQueries({ queryKey: ["session", "member"] });
+      qc.invalidateQueries({ queryKey: ["mail"] });
+    } catch (err) {
+      console.error(err);
+      toast.error("Could not upload that image");
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarRef.current) avatarRef.current.value = "";
+    }
+  }
+
+  async function removeAvatar() {
+    setUploadingAvatar(true);
+    try {
+      await updateMyProfile({ data: { avatarUrl: null } });
+      toast.success("Profile photo removed");
+      qc.invalidateQueries({ queryKey: ["session", "member"] });
+      qc.invalidateQueries({ queryKey: ["mail"] });
+    } catch {
+      toast.error("Could not remove the photo");
+    } finally {
+      setUploadingAvatar(false);
     }
   }
 
@@ -133,6 +177,52 @@ function ProfilePage() {
             </div>
 
             <div>
+              <label className="block text-sm font-medium mb-2">Profile photo</label>
+              <div className="flex items-center gap-4">
+                <UserAvatar
+                  email={member.email}
+                  name={member.fullName}
+                  src={member.avatarUrl}
+                  size={64}
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => avatarRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm transition hover:border-signal disabled:opacity-60"
+                  >
+                    {uploadingAvatar ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <ImagePlus className="size-4" />
+                    )}
+                    {member.avatarUrl ? "Replace" : "Upload"}
+                  </button>
+                  {member.avatarUrl && (
+                    <button
+                      type="button"
+                      onClick={removeAvatar}
+                      disabled={uploadingAvatar}
+                      className="px-3 py-2 text-sm text-muted-foreground transition hover:text-destructive disabled:opacity-60"
+                    >
+                      Remove
+                    </button>
+                  )}
+                  <input
+                    ref={avatarRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+                    hidden
+                    onChange={(e) => uploadAvatar(e.target.files?.[0])}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Shown next to your messages in the mailbox. PNG, JPG or WebP up to 2 MB.
+              </p>
+            </div>
+            <div>
               <label className="block text-sm font-medium mb-2">Full Name</label>
               <input
                 type="text"
@@ -180,24 +270,16 @@ function ProfilePage() {
                 />
                 <button
                   type="button"
-                  onClick={() =>
-                    setShowPasswords((p) => ({ ...p, new: !p.new }))
-                  }
+                  onClick={() => setShowPasswords((p) => ({ ...p, new: !p.new }))}
                   className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
                 >
-                  {showPasswords.new ? (
-                    <EyeOff className="size-4" />
-                  ) : (
-                    <Eye className="size-4" />
-                  )}
+                  {showPasswords.new ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">
-                Confirm Password
-              </label>
+              <label className="block text-sm font-medium mb-2">Confirm Password</label>
               <div className="relative">
                 <input
                   type={showPasswords.confirm ? "text" : "password"}
@@ -208,9 +290,7 @@ function ProfilePage() {
                 />
                 <button
                   type="button"
-                  onClick={() =>
-                    setShowPasswords((p) => ({ ...p, confirm: !p.confirm }))
-                  }
+                  onClick={() => setShowPasswords((p) => ({ ...p, confirm: !p.confirm }))}
                   className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
                 >
                   {showPasswords.confirm ? (
