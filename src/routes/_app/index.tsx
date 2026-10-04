@@ -30,7 +30,7 @@ function Dashboard() {
         description="Live signal across the mailbox, the site content, and inbound project intake."
       />
 
-      <div className="space-y-8 px-6 py-8 md:px-10">
+      <div className="space-y-8 px-4 py-6 sm:px-6 sm:py-8 md:px-10">
         <div className="grid gap-px bg-border sm:grid-cols-2 lg:grid-cols-4">
           <Stat
             label="Unread mail"
@@ -143,12 +143,12 @@ function Dashboard() {
                 {d.recentSubmissions.map((s) => (
                   <li key={s.id} className="py-3">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium">{s.name}</span>
-                      <span className="text-mono-label">
+                      <span className="min-w-0 truncate text-sm font-medium">{s.name}</span>
+                      <span className="text-mono-label shrink-0">
                         {formatDistanceToNow(new Date(s.created_at), { addSuffix: true })}
                       </span>
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="break-all text-xs text-muted-foreground">
                       {s.email}
                       {s.company ? ` · ${s.company}` : ""}
                     </div>

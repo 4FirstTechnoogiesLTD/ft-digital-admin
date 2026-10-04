@@ -90,7 +90,7 @@ function SiteSettings() {
         }
       />
 
-      <div className="max-w-2xl space-y-8 px-6 py-8 md:px-10">
+      <div className="max-w-2xl space-y-8 px-4 py-6 sm:px-6 sm:py-8 md:px-10">
         <section className="space-y-4">
           <h2 className="text-mono-label">Contact</h2>
           <Field
@@ -140,7 +140,7 @@ function SiteSettings() {
                   setMetrics((xs) => xs.map((x, j) => (j === i ? { ...x, n: e.target.value } : x)))
                 }
                 placeholder="04"
-                className="w-24 border border-border bg-background/50 px-3 py-2 text-sm focus:border-signal focus:outline-none"
+                className="w-16 shrink-0 border border-border sm:w-24 bg-background/50 px-3 py-2 text-sm focus:border-signal focus:outline-none"
               />
               <input
                 value={m.l}
@@ -148,11 +148,11 @@ function SiteSettings() {
                   setMetrics((xs) => xs.map((x, j) => (j === i ? { ...x, l: e.target.value } : x)))
                 }
                 placeholder="Practice areas"
-                className="flex-1 border border-border bg-background/50 px-3 py-2 text-sm focus:border-signal focus:outline-none"
+                className="min-w-0 flex-1 border border-border bg-background/50 px-3 py-2 text-sm focus:border-signal focus:outline-none"
               />
               <button
                 onClick={() => setMetrics((xs) => xs.filter((_, j) => j !== i))}
-                className="border border-border px-2 text-xs text-muted-foreground hover:text-destructive"
+                className="shrink-0 border border-border px-2 text-xs text-muted-foreground hover:text-destructive"
               >
                 Remove
               </button>
@@ -182,7 +182,7 @@ function SiteSettings() {
                   )
                 }
                 placeholder="LinkedIn"
-                className="w-32 border border-border bg-background/50 px-3 py-2 text-sm focus:border-signal focus:outline-none"
+                className="w-24 shrink-0 border border-border sm:w-32 bg-background/50 px-3 py-2 text-sm focus:border-signal focus:outline-none"
               />
               <input
                 value={x.href}
@@ -192,11 +192,11 @@ function SiteSettings() {
                   )
                 }
                 placeholder="https://…"
-                className="flex-1 border border-border bg-background/50 px-3 py-2 text-sm focus:border-signal focus:outline-none"
+                className="min-w-0 flex-1 border border-border bg-background/50 px-3 py-2 text-sm focus:border-signal focus:outline-none"
               />
               <button
                 onClick={() => setSocials((xs) => xs.filter((_, j) => j !== i))}
-                className="border border-border px-2 text-xs text-muted-foreground hover:text-destructive"
+                className="shrink-0 border border-border px-2 text-xs text-muted-foreground hover:text-destructive"
               >
                 Remove
               </button>

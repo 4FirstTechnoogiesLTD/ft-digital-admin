@@ -40,7 +40,7 @@ function ContentIndex() {
         description="Everything the marketing site renders. Publishing here updates 4firsttechnologies.com."
       />
 
-      <div className="space-y-10 px-6 py-8 md:px-10">
+      <div className="space-y-10 px-4 py-6 sm:px-6 sm:py-8 md:px-10">
         <section>
           <div className="text-mono-label mb-3 flex items-center gap-2">
             <FileText className="size-3.5" /> Pages
@@ -88,7 +88,7 @@ function ContentIndex() {
                 key={c.key}
                 to="/content/collections/$key"
                 params={{ key: c.key }}
-                className="group flex items-center justify-between gap-4 py-4 transition hover:bg-surface/50 -mx-6 px-6 md:-mx-10 md:px-10"
+                className="group flex items-center justify-between gap-4 py-4 transition hover:bg-surface/50 -mx-4 px-4 sm:-mx-6 sm:px-6 md:-mx-10 md:px-10"
               >
                 <div>
                   <div className="text-sm font-medium">{c.label}</div>

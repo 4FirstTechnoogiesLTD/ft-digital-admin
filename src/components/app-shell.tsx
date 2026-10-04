@@ -1,5 +1,5 @@
 import { Link, useRouterState, useRouter } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   LayoutDashboard,
   Mail,
@@ -61,6 +61,14 @@ const roleRank = { member: 0, editor: 1, admin: 2 } as const;
 
 export function AppShell({ member, children }: { member: SessionMember; children: ReactNode }) {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
   return (
     <div className="flex min-h-screen bg-background">
       {/* mobile top bar */}
@@ -68,14 +76,28 @@ export function AppShell({ member, children }: { member: SessionMember; children
         <span className="text-sm font-medium tracking-tight">
           4First<span className="text-muted-foreground"> / Admin</span>
         </span>
-        <button onClick={() => setOpen((v) => !v)} aria-label="Toggle navigation">
+        <button
+          onClick={() => setOpen((v) => !v)}
+          aria-label="Toggle navigation"
+          aria-expanded={open}
+          className="-mr-2 grid size-10 place-items-center"
+        >
           {open ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>
       </div>
 
+      {/* tap-outside backdrop for the mobile drawer */}
+      {open && (
+        <div
+          aria-hidden
+          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-20 bg-black/50 md:hidden"
+        />
+      )}
+
       <Sidebar member={member} open={open} onNavigate={() => setOpen(false)} />
 
-      <main className="flex-1 pt-14 md:pt-0 md:pl-64">{children}</main>
+      <main className="min-w-0 flex-1 pt-14 md:pt-0 md:pl-64">{children}</main>
     </div>
   );
 }
@@ -105,7 +127,8 @@ function Sidebar({
         open ? "translate-x-0" : "-translate-x-full",
       )}
     >
-      <div className="flex h-16 items-center gap-2.5 border-b border-border px-5">
+      {/* on mobile the fixed top bar already shows the brand */}
+      <div className="hidden h-16 items-center gap-2.5 border-b border-border px-5 md:flex">
         <span className="grid size-8 place-items-center rounded-full bg-signal text-signal-foreground text-sm font-semibold">
           4F
         </span>
@@ -114,7 +137,7 @@ function Sidebar({
         </span>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-5">
+      <nav className="mt-14 flex-1 overflow-y-auto px-3 py-5 md:mt-0">
         {NAV.map((group) => {
           const items = group.items.filter(
             (it) => !it.minRole || roleRank[member.role] >= roleRank[it.minRole],

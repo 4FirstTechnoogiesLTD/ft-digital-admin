@@ -1,5 +1,6 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
+import { ChevronLeft } from "lucide-react";
 import type { JSONContent } from "@tiptap/react";
 import { toast } from "sonner";
 import { getMailboxOverview, saveMailboxSettings } from "@/fn/mail";
@@ -36,11 +37,18 @@ function MailSettings() {
 
   return (
     <>
-      <PageHeader eyebrow="§ Mailbox" title="Mailbox settings" />
-      <div className="max-w-2xl space-y-6 px-6 py-8 md:px-10">
+      <PageHeader
+        eyebrow={
+          <Link to="/mail" className="inline-flex items-center gap-1 hover:text-foreground">
+            <ChevronLeft className="size-3" /> Mailbox
+          </Link>
+        }
+        title="Mailbox settings"
+      />
+      <div className="max-w-2xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 md:px-10">
         <div>
           <label className="text-mono-label mb-2 block">Sending address</label>
-          <div className="border border-border bg-surface px-3 py-2.5 text-sm text-muted-foreground">
+          <div className="break-all border border-border bg-surface px-3 py-2.5 text-sm text-muted-foreground">
             {data.mailbox.address}
           </div>
         </div>
@@ -49,7 +57,7 @@ function MailSettings() {
           <input
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="w-full border border-border bg-background/50 px-3 py-2.5 text-sm focus:border-signal focus:outline-none"
+            className="w-full border border-border bg-background/50 px-3 py-2.5 text-base focus:border-signal focus:outline-none md:text-sm"
           />
         </div>
         <div>

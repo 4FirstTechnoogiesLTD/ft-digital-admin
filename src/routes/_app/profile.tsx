@@ -147,7 +147,7 @@ function ProfilePage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="border-b border-border">
-        <div className="max-w-2xl mx-auto px-6 py-4">
+        <div className="max-w-2xl mx-auto px-4 py-4 sm:px-6">
           <button
             onClick={() => navigate({ to: "/" })}
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition mb-4"
@@ -159,9 +159,9 @@ function ProfilePage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-6 py-8">
+      <div className="max-w-2xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
         {/* Profile Info Section */}
-        <div className="border border-border rounded-lg p-6 mb-8">
+        <div className="border border-border rounded-lg p-4 sm:p-6 mb-8">
           <h2 className="text-lg font-medium mb-6">Profile Information</h2>
 
           <div className="space-y-5">
@@ -178,7 +178,7 @@ function ProfilePage() {
 
             <div>
               <label className="block text-sm font-medium mb-2">Profile photo</label>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-4">
                 <UserAvatar
                   email={member.email}
                   name={member.fullName}

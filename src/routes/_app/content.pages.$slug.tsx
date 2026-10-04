@@ -129,7 +129,7 @@ function PageEditor() {
         }
       />
 
-      <div className="grid gap-10 px-6 py-8 md:grid-cols-[1fr_260px] md:px-10">
+      <div className="grid gap-10 px-4 py-6 sm:px-6 sm:py-8 md:px-10 lg:grid-cols-[1fr_260px]">
         <div className="space-y-8">
           <section className="space-y-4">
             <h2 className="text-mono-label">Hero</h2>

@@ -139,7 +139,7 @@ function CollectionEditor() {
         }
       />
 
-      <div className="px-6 py-8 md:px-10">
+      <div className="px-4 py-6 sm:px-6 sm:py-8 md:px-10">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
             <ul className="space-y-2">
@@ -229,7 +229,7 @@ function SortableRow({
         >
           <GripVertical className="size-4" />
         </button>
-        <button onClick={onEdit} className="flex-1 truncate text-left text-sm">
+        <button onClick={onEdit} className="min-w-0 flex-1 truncate text-left text-sm">
           {itemHeadline(shape, item.data)}
         </button>
         {!item.is_published && (
@@ -246,7 +246,7 @@ function SortableRow({
           <Trash2 className="size-4" />
         </button>
       </div>
-      {isEditing && <div className="border-t border-border p-5">{children}</div>}
+      {isEditing && <div className="border-t border-border p-4 sm:p-5">{children}</div>}
     </li>
   );
 }

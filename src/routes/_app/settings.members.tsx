@@ -51,6 +51,74 @@ function MembersPage() {
     }
   }
 
+  type Member = (typeof members)[number];
+
+  async function changeRole(m: Member, next: (typeof ROLES)[number]) {
+    try {
+      await updateMember({ data: { id: m.id, role: next } });
+      toast.success("Role updated");
+      router.invalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  async function toggleActive(m: Member) {
+    try {
+      await updateMember({ data: { id: m.id, isActive: !m.isActive } });
+      router.invalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  async function resend(m: Member) {
+    try {
+      await resendInvite({ data: { email: m.email } });
+      toast.success("Invite email sent");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed");
+    }
+  }
+
+  // Shared by the mobile cards and the desktop table.
+  const roleSelect = (m: Member) => (
+    <select
+      value={m.role}
+      onChange={(e) => changeRole(m, e.target.value as (typeof ROLES)[number])}
+      aria-label={`Role for ${m.email}`}
+      className="border border-border bg-background px-2 py-1 text-xs"
+    >
+      {ROLES.map((r) => (
+        <option key={r} value={r}>
+          {r}
+        </option>
+      ))}
+    </select>
+  );
+  const statusToggle = (m: Member) => (
+    <button
+      onClick={() => toggleActive(m)}
+      className={
+        m.isActive
+          ? "text-signal"
+          : "text-muted-foreground line-through decoration-muted-foreground"
+      }
+    >
+      {m.isActive ? "active" : "disabled"}
+    </button>
+  );
+  const resendButton = (m: Member) => (
+    <button
+      onClick={() => resend(m)}
+      title="Resend set-password email"
+      aria-label="Resend set-password email"
+      className="text-muted-foreground hover:text-foreground"
+    >
+      <Mail className="size-4" />
+    </button>
+  );
+
   return (
     <>
       <PageHeader
@@ -67,8 +135,35 @@ function MembersPage() {
         }
       />
 
-      <div className="px-6 py-8 md:px-10">
-        <div className="overflow-x-auto border border-border">
+      <div className="px-4 py-6 sm:px-6 sm:py-8 md:px-10">
+        {/* phones: one card per member */}
+        <ul className="divide-y divide-border border border-border md:hidden">
+          {members.map((m) => (
+            <li key={m.id} className="space-y-2 px-4 py-3 text-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium">{m.fullName || "—"}</div>
+                  <div className="break-all text-xs text-muted-foreground">{m.email}</div>
+                  {m.mailbox && (
+                    <div className="break-all text-xs text-muted-foreground">
+                      Mailbox: {m.mailbox}
+                    </div>
+                  )}
+                </div>
+                {resendButton(m)}
+              </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+                {roleSelect(m)}
+                {statusToggle(m)}
+                <span className="text-muted-foreground">
+                  Joined {formatDistanceToNow(new Date(m.createdAt), { addSuffix: true })}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <div className="hidden overflow-x-auto border border-border md:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-mono-label">
@@ -87,67 +182,12 @@ function MembersPage() {
                   <td className="px-4 py-3">{m.fullName || "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">{m.email}</td>
                   <td className="px-4 py-3 text-muted-foreground">{m.mailbox ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    <select
-                      value={m.role}
-                      onChange={async (e) => {
-                        try {
-                          await updateMember({
-                            data: { id: m.id, role: e.target.value as (typeof ROLES)[number] },
-                          });
-                          toast.success("Role updated");
-                          router.invalidate();
-                        } catch (err) {
-                          toast.error(err instanceof Error ? err.message : "Failed");
-                        }
-                      }}
-                      className="border border-border bg-background px-2 py-1 text-xs"
-                    >
-                      {ROLES.map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={async () => {
-                        try {
-                          await updateMember({ data: { id: m.id, isActive: !m.isActive } });
-                          router.invalidate();
-                        } catch (err) {
-                          toast.error(err instanceof Error ? err.message : "Failed");
-                        }
-                      }}
-                      className={
-                        m.isActive
-                          ? "text-signal"
-                          : "text-muted-foreground line-through decoration-muted-foreground"
-                      }
-                    >
-                      {m.isActive ? "active" : "disabled"}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="px-4 py-3">{roleSelect(m)}</td>
+                  <td className="px-4 py-3">{statusToggle(m)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
                     {formatDistanceToNow(new Date(m.createdAt), { addSuffix: true })}
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={async () => {
-                        try {
-                          await resendInvite({ data: { email: m.email } });
-                          toast.success("Invite email sent");
-                        } catch (err) {
-                          toast.error(err instanceof Error ? err.message : "Failed");
-                        }
-                      }}
-                      title="Resend set-password email"
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <Mail className="size-4" />
-                    </button>
-                  </td>
+                  <td className="px-4 py-3 text-right">{resendButton(m)}</td>
                 </tr>
               ))}
             </tbody>

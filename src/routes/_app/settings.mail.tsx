@@ -23,7 +23,7 @@ function MailDomainPage() {
         title="Mail domain"
         description="Inbound + outbound team mail runs through Resend on this subdomain."
       />
-      <div className="max-w-2xl space-y-8 px-6 py-8 md:px-10">
+      <div className="max-w-2xl space-y-8 px-4 py-6 sm:px-6 sm:py-8 md:px-10">
         <div className="space-y-3">
           <Row label="Mail domain" value={s.mailDomain} />
           <Row label="Inbound webhook URL" value={s.webhookUrl} copyable />
@@ -67,8 +67,11 @@ function MailDomainPage() {
               <li className="px-4 py-3 text-muted-foreground">None yet.</li>
             ) : (
               s.mailboxes.map((m) => (
-                <li key={m.address} className="flex justify-between px-4 py-2.5">
-                  <span>{m.address}</span>
+                <li
+                  key={m.address}
+                  className="flex flex-wrap justify-between gap-x-4 gap-y-0.5 px-4 py-2.5"
+                >
+                  <span className="min-w-0 break-all">{m.address}</span>
                   <span className="text-muted-foreground">{m.display_name}</span>
                 </li>
               ))
@@ -82,10 +85,10 @@ function MailDomainPage() {
 
 function Row({ label, value, copyable }: { label: string; value: string; copyable?: boolean }) {
   return (
-    <div className="flex items-center justify-between border border-border bg-surface px-3 py-2.5 text-sm">
-      <span className="text-mono-label">{label}</span>
-      <span className="flex items-center gap-2">
-        <span className="font-mono text-xs">{value}</span>
+    <div className="flex flex-col gap-1 border border-border bg-surface px-3 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <span className="text-mono-label shrink-0">{label}</span>
+      <span className="flex min-w-0 items-center gap-2">
+        <span className="min-w-0 break-all font-mono text-xs">{value}</span>
         {copyable && (
           <button
             onClick={() => {

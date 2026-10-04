@@ -4,6 +4,7 @@ import {
   Outlet,
   useNavigate,
   useParams,
+  useRouterState,
   useSearch,
 } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -61,6 +62,9 @@ function MailLayout() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const params = useParams({ strict: false }) as { threadId?: string };
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Below lg the list and the reading pane share one column; show whichever is in focus.
+  const detailOpen = Boolean(params.threadId) || pathname.startsWith("/mail/settings");
   const [composeOpen, setComposeOpen] = useState(false);
   const [searchText, setSearchText] = useState(q ?? "");
 
@@ -105,9 +109,9 @@ function MailLayout() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] md:h-screen">
+    <div className="flex h-[calc(100dvh-3.5rem)] md:h-dvh">
       {/* folder rail */}
-      <div className="hidden w-48 shrink-0 flex-col border-r border-border bg-sidebar lg:flex">
+      <div className="hidden w-48 shrink-0 flex-col border-r border-border bg-sidebar xl:flex">
         <div className="p-4">
           <button
             onClick={() => setComposeOpen(true)}
@@ -160,20 +164,74 @@ function MailLayout() {
       </div>
 
       {/* thread list */}
-      <div className="flex w-full shrink-0 flex-col border-r border-border md:w-80 lg:w-96">
+      <div
+        className={cn(
+          "w-full min-w-0 shrink-0 flex-col border-r border-border lg:flex lg:w-80 2xl:w-96",
+          detailOpen ? "hidden" : "flex",
+        )}
+      >
+        {/* folder bar — stands in for the rail on smaller screens */}
+        <div className="flex items-center gap-1.5 overflow-x-auto border-b border-border px-3 py-2 [scrollbar-width:none] xl:hidden [&::-webkit-scrollbar]:hidden">
+          <button
+            onClick={() => setComposeOpen(true)}
+            className="flex shrink-0 items-center gap-1.5 border border-border-strong bg-signal px-3 py-1.5 text-sm font-medium text-signal-foreground transition hover:brightness-110"
+          >
+            <Pencil className="size-3.5" /> Compose
+          </button>
+          {FOLDERS.map((f) => {
+            const c = overview?.counts?.[f.key];
+            const active = folder === f.key;
+            const Icon = f.icon;
+            return (
+              <Link
+                key={f.key}
+                to="/mail"
+                search={{ folder: f.key, q: undefined }}
+                className={cn(
+                  "flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                  active
+                    ? "bg-surface-2 text-foreground"
+                    : "text-muted-foreground hover:bg-surface hover:text-foreground",
+                )}
+              >
+                <Icon className="size-4" />
+                {f.label}
+                {c && c.unread > 0 && (
+                  <span className="rounded-full bg-signal px-1.5 text-[11px] font-medium text-signal-foreground">
+                    {c.unread}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+          <Link
+            to="/mail/settings"
+            aria-label="Mailbox settings"
+            title="Mailbox settings"
+            className="ml-auto grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-surface hover:text-foreground"
+          >
+            <Settings2 className="size-4" />
+          </Link>
+        </div>
         <form
           onSubmit={submitSearch}
-          className="flex items-center gap-2 border-b border-border px-3 py-2.5"
+          className="flex items-center gap-2 border-b border-border px-3 py-1.5"
         >
-          <Search className="size-4 text-muted-foreground" />
+          <Search className="size-4 shrink-0 text-muted-foreground" />
           <input
+            type="search"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             placeholder={`Search ${folder}`}
-            className="flex-1 bg-transparent text-sm focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent py-1 text-base focus:outline-none md:text-sm"
           />
-          <button type="button" onClick={() => refetchThreads()} aria-label="Refresh">
-            <RefreshCw className="size-3.5 text-muted-foreground hover:text-foreground" />
+          <button
+            type="button"
+            onClick={() => refetchThreads()}
+            aria-label="Refresh"
+            className="grid size-8 shrink-0 place-items-center text-muted-foreground hover:text-foreground"
+          >
+            <RefreshCw className="size-3.5" />
           </button>
         </form>
         <div className="flex-1 overflow-y-auto">
@@ -234,7 +292,9 @@ function MailLayout() {
       </div>
 
       {/* reading pane */}
-      <div className="hidden flex-1 md:block">
+      <div
+        className={cn("min-w-0 flex-1 overflow-y-auto lg:block", detailOpen ? "block" : "hidden")}
+      >
         <Outlet />
       </div>
 
