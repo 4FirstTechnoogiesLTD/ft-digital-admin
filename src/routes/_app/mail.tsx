@@ -81,7 +81,10 @@ function MailLayout() {
     initialData: { threads: initial.threads },
   });
 
-  // realtime: refresh on any message/thread change for this mailbox
+  // realtime: refresh on any message/thread change for this mailbox.
+  // Subscribe once per mount — re-running this on thread change would call
+  // channel("mail-live") while the old one is still being removed (removeChannel
+  // is async), get the already-joined channel back, and .on() would throw.
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
     const channel = supabase
@@ -89,8 +92,8 @@ function MailLayout() {
       .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => {
         refetchThreads();
         qc.invalidateQueries({ queryKey: ["mail", "overview"] });
-        if (params.threadId)
-          qc.invalidateQueries({ queryKey: ["mail", "thread", params.threadId] });
+        // only the open thread is actively observed, so only it refetches
+        qc.invalidateQueries({ queryKey: ["mail", "thread"] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "threads" }, () => {
         refetchThreads();
@@ -99,7 +102,7 @@ function MailLayout() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [qc, refetchThreads, params.threadId]);
+  }, [qc, refetchThreads]);
 
   const threads = threadsData?.threads ?? [];
 
