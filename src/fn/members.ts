@@ -19,6 +19,20 @@ async function requireAdmin() {
   return { supabase, admin: getSupabaseAdminClient(), user };
 }
 
+/**
+ * Builds a set-password link that lands on our own /reset-password page.
+ * We pass the hashed token rather than Supabase's action_link so the page can
+ * verify it itself (verifyOtp) — no dependence on the auth flow type or on the
+ * Supabase redirect allow-list, and the token is only spent when they submit.
+ */
+async function recoveryLink(admin: ReturnType<typeof getSupabaseAdminClient>, email: string) {
+  const env = serverEnv();
+  const link = await admin.auth.admin.generateLink({ type: "recovery", email });
+  const tokenHash = link.data.properties?.hashed_token;
+  if (!tokenHash) return null;
+  return `${env.APP_URL}/reset-password?token_hash=${encodeURIComponent(tokenHash)}`;
+}
+
 function localPart(email: string) {
   return email
     .split("@")[0]
@@ -88,12 +102,7 @@ export const inviteMember = createServerFn({ method: "POST" })
       .upsert({ user_id: userId, address, display_name: data.fullName }, { onConflict: "user_id" });
 
     // send a set-password link
-    const link = await admin.auth.admin.generateLink({
-      type: "recovery",
-      email: data.email,
-      options: { redirectTo: `${env.APP_URL}/login` },
-    });
-    const actionUrl = link.data.properties?.action_link;
+    const actionUrl = await recoveryLink(admin, data.email);
     if (actionUrl) {
       try {
         await sendEmail({
@@ -147,17 +156,44 @@ export const updateMember = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Admin sets a member's password directly. The password itself never reaches the audit log. */
+export const setMemberPassword = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      id: z.string().uuid(),
+      password: z.string().min(8).max(72),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { admin, supabase, user } = await requireAdmin();
+    const { data: target } = await admin
+      .from("members")
+      .select("user_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!target) throw new Error("Member not found");
+
+    const { error } = await admin.auth.admin.updateUserById(target.user_id, {
+      password: data.password,
+    });
+    if (error) throw new Error(error.message);
+
+    await supabase.from("audit_log").insert({
+      actor_user_id: user.id,
+      action: "set member password",
+      entity: "member",
+      entity_id: data.id,
+      diff: {} as never,
+    });
+    return { ok: true };
+  });
+
 export const resendInvite = createServerFn({ method: "POST" })
   .validator(z.object({ email: z.string().email() }))
   .handler(async ({ data }) => {
     const { admin } = await requireAdmin();
     const env = serverEnv();
-    const link = await admin.auth.admin.generateLink({
-      type: "recovery",
-      email: data.email,
-      options: { redirectTo: `${env.APP_URL}/login` },
-    });
-    const actionUrl = link.data.properties?.action_link;
+    const actionUrl = await recoveryLink(admin, data.email);
     if (!actionUrl) throw new Error("Could not generate link");
     await sendEmail({
       from: `4First Admin <no-reply@${env.MAIL_DOMAIN}>`,

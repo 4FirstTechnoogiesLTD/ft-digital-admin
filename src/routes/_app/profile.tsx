@@ -29,11 +29,9 @@ function ProfilePage() {
       setFullName(member.fullName);
     }
   }, [member?.fullName]);
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPasswords, setShowPasswords] = useState({
-    current: false,
     new: false,
     confirm: false,
   });
@@ -107,8 +105,8 @@ function ProfilePage() {
   }
 
   async function handleChangePassword() {
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error("All password fields are required");
+    if (!newPassword || !confirmPassword) {
+      toast.error("Enter and confirm the new password");
       return;
     }
 
@@ -131,7 +129,6 @@ function ProfilePage() {
 
       if (error) throw error;
       toast.success("Password changed successfully");
-      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
