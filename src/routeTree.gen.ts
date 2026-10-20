@@ -15,6 +15,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppMailRouteImport } from './routes/_app/mail'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
+import { Route as AppCareersIndexRouteImport } from './routes/_app/careers.index'
 import { Route as AppContentIndexRouteImport } from './routes/_app/content.index'
 import { Route as AppContentMediaRouteImport } from './routes/_app/content.media'
 import { Route as AppMailIndexRouteImport } from './routes/_app/mail.index'
@@ -22,8 +23,12 @@ import { Route as AppMailThreadIdRouteImport } from './routes/_app/mail.$threadI
 import { Route as AppMailSettingsRouteImport } from './routes/_app/mail.settings'
 import { Route as AppSettingsMailRouteImport } from './routes/_app/settings.mail'
 import { Route as AppSettingsMembersRouteImport } from './routes/_app/settings.members'
+import { Route as AppSettingsRecruitmentRouteImport } from './routes/_app/settings.recruitment'
 import { Route as AppSettingsSiteRouteImport } from './routes/_app/settings.site'
 import { Route as ApiResendInboundRouteImport } from './routes/api/resend/inbound'
+import { Route as AppCareersApplicationsIndexRouteImport } from './routes/_app/careers.applications.index'
+import { Route as AppCareersApplicationsIdRouteImport } from './routes/_app/careers.applications.$id'
+import { Route as AppCareersJobsIdRouteImport } from './routes/_app/careers.jobs.$id'
 import { Route as AppContentCollectionsKeyRouteImport } from './routes/_app/content.collections.$key'
 import { Route as AppContentPagesSlugRouteImport } from './routes/_app/content.pages.$slug'
 
@@ -54,6 +59,11 @@ const AppMailRoute = AppMailRouteImport.update({
 const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCareersIndexRoute = AppCareersIndexRouteImport.update({
+  id: '/careers/',
+  path: '/careers/',
   getParentRoute: () => AppRoute,
 } as any)
 const AppContentIndexRoute = AppContentIndexRouteImport.update({
@@ -91,6 +101,11 @@ const AppSettingsMembersRoute = AppSettingsMembersRouteImport.update({
   path: '/settings/members',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsRecruitmentRoute = AppSettingsRecruitmentRouteImport.update({
+  id: '/settings/recruitment',
+  path: '/settings/recruitment',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsSiteRoute = AppSettingsSiteRouteImport.update({
   id: '/settings/site',
   path: '/settings/site',
@@ -100,6 +115,23 @@ const ApiResendInboundRoute = ApiResendInboundRouteImport.update({
   id: '/api/resend/inbound',
   path: '/api/resend/inbound',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppCareersApplicationsIndexRoute =
+  AppCareersApplicationsIndexRouteImport.update({
+    id: '/careers/applications/',
+    path: '/careers/applications/',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppCareersApplicationsIdRoute =
+  AppCareersApplicationsIdRouteImport.update({
+    id: '/careers/applications/$id',
+    path: '/careers/applications/$id',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppCareersJobsIdRoute = AppCareersJobsIdRouteImport.update({
+  id: '/careers/jobs/$id',
+  path: '/careers/jobs/$id',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppContentCollectionsKeyRoute =
   AppContentCollectionsKeyRouteImport.update({
@@ -124,12 +156,17 @@ export interface FileRoutesByFullPath {
   '/mail/settings': typeof AppMailSettingsRoute
   '/settings/mail': typeof AppSettingsMailRoute
   '/settings/members': typeof AppSettingsMembersRoute
+  '/settings/recruitment': typeof AppSettingsRecruitmentRoute
   '/settings/site': typeof AppSettingsSiteRoute
   '/api/resend/inbound': typeof ApiResendInboundRoute
+  '/careers/': typeof AppCareersIndexRoute
   '/content/': typeof AppContentIndexRoute
   '/mail/': typeof AppMailIndexRoute
+  '/careers/applications/$id': typeof AppCareersApplicationsIdRoute
+  '/careers/jobs/$id': typeof AppCareersJobsIdRoute
   '/content/collections/$key': typeof AppContentCollectionsKeyRoute
   '/content/pages/$slug': typeof AppContentPagesSlugRoute
+  '/careers/applications/': typeof AppCareersApplicationsIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -141,12 +178,17 @@ export interface FileRoutesByTo {
   '/mail/settings': typeof AppMailSettingsRoute
   '/settings/mail': typeof AppSettingsMailRoute
   '/settings/members': typeof AppSettingsMembersRoute
+  '/settings/recruitment': typeof AppSettingsRecruitmentRoute
   '/settings/site': typeof AppSettingsSiteRoute
   '/api/resend/inbound': typeof ApiResendInboundRoute
+  '/careers': typeof AppCareersIndexRoute
   '/content': typeof AppContentIndexRoute
   '/mail': typeof AppMailIndexRoute
+  '/careers/applications/$id': typeof AppCareersApplicationsIdRoute
+  '/careers/jobs/$id': typeof AppCareersJobsIdRoute
   '/content/collections/$key': typeof AppContentCollectionsKeyRoute
   '/content/pages/$slug': typeof AppContentPagesSlugRoute
+  '/careers/applications': typeof AppCareersApplicationsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -161,12 +203,17 @@ export interface FileRoutesById {
   '/_app/mail/settings': typeof AppMailSettingsRoute
   '/_app/settings/mail': typeof AppSettingsMailRoute
   '/_app/settings/members': typeof AppSettingsMembersRoute
+  '/_app/settings/recruitment': typeof AppSettingsRecruitmentRoute
   '/_app/settings/site': typeof AppSettingsSiteRoute
   '/api/resend/inbound': typeof ApiResendInboundRoute
+  '/_app/careers/': typeof AppCareersIndexRoute
   '/_app/content/': typeof AppContentIndexRoute
   '/_app/mail/': typeof AppMailIndexRoute
+  '/_app/careers/applications/$id': typeof AppCareersApplicationsIdRoute
+  '/_app/careers/jobs/$id': typeof AppCareersJobsIdRoute
   '/_app/content/collections/$key': typeof AppContentCollectionsKeyRoute
   '/_app/content/pages/$slug': typeof AppContentPagesSlugRoute
+  '/_app/careers/applications/': typeof AppCareersApplicationsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -181,12 +228,17 @@ export interface FileRouteTypes {
     | '/mail/settings'
     | '/settings/mail'
     | '/settings/members'
+    | '/settings/recruitment'
     | '/settings/site'
     | '/api/resend/inbound'
+    | '/careers/'
     | '/content/'
     | '/mail/'
+    | '/careers/applications/$id'
+    | '/careers/jobs/$id'
     | '/content/collections/$key'
     | '/content/pages/$slug'
+    | '/careers/applications/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -198,12 +250,17 @@ export interface FileRouteTypes {
     | '/mail/settings'
     | '/settings/mail'
     | '/settings/members'
+    | '/settings/recruitment'
     | '/settings/site'
     | '/api/resend/inbound'
+    | '/careers'
     | '/content'
     | '/mail'
+    | '/careers/applications/$id'
+    | '/careers/jobs/$id'
     | '/content/collections/$key'
     | '/content/pages/$slug'
+    | '/careers/applications'
   id:
     | '__root__'
     | '/_app'
@@ -217,12 +274,17 @@ export interface FileRouteTypes {
     | '/_app/mail/settings'
     | '/_app/settings/mail'
     | '/_app/settings/members'
+    | '/_app/settings/recruitment'
     | '/_app/settings/site'
     | '/api/resend/inbound'
+    | '/_app/careers/'
     | '/_app/content/'
     | '/_app/mail/'
+    | '/_app/careers/applications/$id'
+    | '/_app/careers/jobs/$id'
     | '/_app/content/collections/$key'
     | '/_app/content/pages/$slug'
+    | '/_app/careers/applications/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -276,6 +338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/careers/': {
+      id: '/_app/careers/'
+      path: '/careers'
+      fullPath: '/careers/'
+      preLoaderRoute: typeof AppCareersIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/content/': {
       id: '/_app/content/'
       path: '/content'
@@ -325,6 +394,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsMembersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings/recruitment': {
+      id: '/_app/settings/recruitment'
+      path: '/settings/recruitment'
+      fullPath: '/settings/recruitment'
+      preLoaderRoute: typeof AppSettingsRecruitmentRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings/site': {
       id: '/_app/settings/site'
       path: '/settings/site'
@@ -338,6 +414,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/resend/inbound'
       preLoaderRoute: typeof ApiResendInboundRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/careers/applications/': {
+      id: '/_app/careers/applications/'
+      path: '/careers/applications'
+      fullPath: '/careers/applications/'
+      preLoaderRoute: typeof AppCareersApplicationsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/careers/applications/$id': {
+      id: '/_app/careers/applications/$id'
+      path: '/careers/applications/$id'
+      fullPath: '/careers/applications/$id'
+      preLoaderRoute: typeof AppCareersApplicationsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/careers/jobs/$id': {
+      id: '/_app/careers/jobs/$id'
+      path: '/careers/jobs/$id'
+      fullPath: '/careers/jobs/$id'
+      preLoaderRoute: typeof AppCareersJobsIdRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/content/collections/$key': {
       id: '/_app/content/collections/$key'
@@ -378,10 +475,15 @@ interface AppRouteChildren {
   AppContentMediaRoute: typeof AppContentMediaRoute
   AppSettingsMailRoute: typeof AppSettingsMailRoute
   AppSettingsMembersRoute: typeof AppSettingsMembersRoute
+  AppSettingsRecruitmentRoute: typeof AppSettingsRecruitmentRoute
   AppSettingsSiteRoute: typeof AppSettingsSiteRoute
+  AppCareersIndexRoute: typeof AppCareersIndexRoute
   AppContentIndexRoute: typeof AppContentIndexRoute
+  AppCareersApplicationsIdRoute: typeof AppCareersApplicationsIdRoute
+  AppCareersJobsIdRoute: typeof AppCareersJobsIdRoute
   AppContentCollectionsKeyRoute: typeof AppContentCollectionsKeyRoute
   AppContentPagesSlugRoute: typeof AppContentPagesSlugRoute
+  AppCareersApplicationsIndexRoute: typeof AppCareersApplicationsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -391,10 +493,15 @@ const AppRouteChildren: AppRouteChildren = {
   AppContentMediaRoute: AppContentMediaRoute,
   AppSettingsMailRoute: AppSettingsMailRoute,
   AppSettingsMembersRoute: AppSettingsMembersRoute,
+  AppSettingsRecruitmentRoute: AppSettingsRecruitmentRoute,
   AppSettingsSiteRoute: AppSettingsSiteRoute,
+  AppCareersIndexRoute: AppCareersIndexRoute,
   AppContentIndexRoute: AppContentIndexRoute,
+  AppCareersApplicationsIdRoute: AppCareersApplicationsIdRoute,
+  AppCareersJobsIdRoute: AppCareersJobsIdRoute,
   AppContentCollectionsKeyRoute: AppContentCollectionsKeyRoute,
   AppContentPagesSlugRoute: AppContentPagesSlugRoute,
+  AppCareersApplicationsIndexRoute: AppCareersApplicationsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

@@ -9,6 +9,8 @@ export interface SessionMember {
   fullName: string;
   role: MemberRole;
   avatarUrl: string | null;
+  /** admins always; other members only when granted recruitment access */
+  canRecruit: boolean;
   mailbox: { id: string; address: string; displayName: string } | null;
 }
 
@@ -26,7 +28,7 @@ export const fetchSessionMember = createServerFn({ method: "GET" }).handler(
 
     const { data: member } = await supabase
       .from("members")
-      .select("id, full_name, role, avatar_url, is_active")
+      .select("id, full_name, role, avatar_url, is_active, can_recruit")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -45,6 +47,7 @@ export const fetchSessionMember = createServerFn({ method: "GET" }).handler(
       fullName: member.full_name,
       role: member.role,
       avatarUrl: member.avatar_url,
+      canRecruit: member.role === "admin" || Boolean(member.can_recruit),
       mailbox: mailbox
         ? { id: mailbox.id, address: mailbox.address, displayName: mailbox.display_name }
         : null,

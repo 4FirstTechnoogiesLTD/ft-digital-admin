@@ -57,6 +57,7 @@ export const listMembers = createServerFn({ method: "GET" }).handler(async () =>
     fullName: m.full_name,
     role: m.role,
     isActive: m.is_active,
+    canRecruit: m.can_recruit ?? false,
     createdAt: m.created_at,
     email: emailByUser.get(m.user_id) ?? "",
     mailbox: addrByUser.get(m.user_id) ?? null,
@@ -129,6 +130,7 @@ export const updateMember = createServerFn({ method: "POST" })
       id: z.string().uuid(),
       role: z.enum(["admin", "editor", "member"]).optional(),
       isActive: z.boolean().optional(),
+      canRecruit: z.boolean().optional(),
     }),
   )
   .handler(async ({ data }) => {
@@ -145,6 +147,7 @@ export const updateMember = createServerFn({ method: "POST" })
     const patch: Record<string, unknown> = {};
     if (data.role) patch.role = data.role;
     if (typeof data.isActive === "boolean") patch.is_active = data.isActive;
+    if (typeof data.canRecruit === "boolean") patch.can_recruit = data.canRecruit;
     await admin.from("members").update(patch).eq("id", data.id);
     await supabase.from("audit_log").insert({
       actor_user_id: user.id,

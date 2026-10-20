@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { Area, AreaChart, Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
-import { Mail, Inbox, FileCheck2, PencilRuler, ArrowRight } from "lucide-react";
+import { Mail, Inbox, FileCheck2, PencilRuler, ArrowRight, Briefcase, UserSearch } from "lucide-react";
+import { getRecruitmentSummary } from "@/fn/careers";
 import { fetchDashboard, type DashboardData } from "@/fn/dashboard";
 import { PageHeader } from "@/components/page-header";
 
@@ -21,6 +22,11 @@ function Dashboard() {
   });
 
   const d = data;
+  const { data: recruit } = useQuery({
+    queryKey: ["recruitment-summary"],
+    queryFn: () => getRecruitmentSummary(),
+    refetchInterval: 60_000,
+  });
 
   return (
     <>
@@ -61,6 +67,14 @@ function Dashboard() {
             }
           />
         </div>
+
+        {recruit && (
+          <div className="grid gap-px bg-border sm:grid-cols-3">
+            <Stat label="New applications" value={recruit.fresh} icon={<UserSearch className="size-4" />} to="/careers/applications" />
+            <Stat label="Open vacancies" value={recruit.openJobs} icon={<Briefcase className="size-4" />} to="/careers" />
+            <Stat label="Unsent notifications" value={recruit.failedNotifications} icon={<Mail className="size-4" />} hint="Retry from the application page" />
+          </div>
+        )}
 
         <div className="grid gap-6 lg:grid-cols-2">
           <Panel title="Project intake" subtitle="Submissions per week · last 8 weeks">

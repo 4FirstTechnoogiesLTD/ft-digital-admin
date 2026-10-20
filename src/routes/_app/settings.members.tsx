@@ -145,6 +145,27 @@ function MembersPage() {
       {m.isActive ? "active" : "disabled"}
     </button>
   );
+  const recruitToggle = (m: Member) =>
+    m.role === "admin" ? (
+      <span className="text-muted-foreground">recruiting: always</span>
+    ) : (
+      <label className="flex items-center gap-1.5 text-xs">
+        <input
+          type="checkbox"
+          checked={m.canRecruit}
+          onChange={async (e) => {
+            try {
+              await updateMember({ data: { id: m.id, canRecruit: e.target.checked } });
+              router.invalidate();
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Failed");
+            }
+          }}
+          className="accent-[var(--color-signal)]"
+        />
+        Recruitment access
+      </label>
+    );
   const resendButton = (m: Member) => (
     <button
       onClick={() => resend(m)}
@@ -208,6 +229,7 @@ function MembersPage() {
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
                 {roleSelect(m)}
                 {statusToggle(m)}
+                {recruitToggle(m)}
                 <span className="text-muted-foreground">
                   Joined {formatDistanceToNow(new Date(m.createdAt), { addSuffix: true })}
                 </span>
@@ -225,6 +247,7 @@ function MembersPage() {
                 <th className="px-4 py-3 text-left font-normal">Mailbox</th>
                 <th className="px-4 py-3 text-left font-normal">Role</th>
                 <th className="px-4 py-3 text-left font-normal">Status</th>
+                <th className="px-4 py-3 text-left font-normal">Recruitment</th>
                 <th className="px-4 py-3 text-left font-normal">Joined</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -237,6 +260,7 @@ function MembersPage() {
                   <td className="px-4 py-3 text-muted-foreground">{m.mailbox ?? "—"}</td>
                   <td className="px-4 py-3">{roleSelect(m)}</td>
                   <td className="px-4 py-3">{statusToggle(m)}</td>
+                  <td className="px-4 py-3">{recruitToggle(m)}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
                     {formatDistanceToNow(new Date(m.createdAt), { addSuffix: true })}
                   </td>

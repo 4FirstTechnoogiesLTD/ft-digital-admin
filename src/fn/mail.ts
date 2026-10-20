@@ -131,11 +131,12 @@ export const getThread = createServerFn({ method: "GET" })
       .maybeSingle();
     if (!thread) throw new Error("Thread not found");
 
+    // Every message in the thread, whatever its folder: a reply sent from an
+    // inbox thread is stored in "sent" and must still show in the conversation.
     const { data: messages } = await supabase
       .from("messages")
       .select("*")
       .eq("thread_id", data.threadId)
-      .eq("folder", thread.folder)
       .order("created_at", { ascending: true });
 
     const ids = (messages ?? []).map((m) => m.id);

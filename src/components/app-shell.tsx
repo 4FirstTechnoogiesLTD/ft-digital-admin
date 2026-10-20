@@ -9,6 +9,8 @@ import {
   Settings,
   Users,
   AtSign,
+  Briefcase,
+  UserSearch,
   LogOut,
   Menu,
   X,
@@ -22,6 +24,7 @@ interface NavItem {
   label: string;
   icon: typeof Mail;
   minRole?: "editor" | "admin";
+  needsRecruit?: boolean;
   exact?: boolean;
 }
 
@@ -48,11 +51,19 @@ const NAV: { section: string; items: NavItem[] }[] = [
     ],
   },
   {
+    section: "Recruitment",
+    items: [
+      { to: "/careers", label: "Vacancies", icon: Briefcase, needsRecruit: true, exact: true },
+      { to: "/careers/applications", label: "Applications", icon: UserSearch, needsRecruit: true },
+    ],
+  },
+  {
     section: "Settings",
     items: [
       { to: "/settings/site", label: "Site settings", icon: Settings, minRole: "editor" },
       { to: "/settings/members", label: "Members", icon: Users, minRole: "admin" },
       { to: "/settings/mail", label: "Mail domain", icon: AtSign, minRole: "admin" },
+      { to: "/settings/recruitment", label: "Recruitment", icon: Briefcase, minRole: "admin" },
     ],
   },
 ];
@@ -140,7 +151,9 @@ function Sidebar({
       <nav className="mt-14 flex-1 overflow-y-auto px-3 py-5 md:mt-0">
         {NAV.map((group) => {
           const items = group.items.filter(
-            (it) => !it.minRole || roleRank[member.role] >= roleRank[it.minRole],
+            (it) =>
+              (!it.minRole || roleRank[member.role] >= roleRank[it.minRole]) &&
+              (!it.needsRecruit || member.canRecruit),
           );
           if (!items.length) return null;
           return (

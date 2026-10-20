@@ -44,12 +44,16 @@ export const Route = createFileRoute("/api/resend/inbound")({
             console.log("[inbound] signature verified successfully");
           } catch (err) {
             console.error("[inbound] signature verification failed", err);
-            // For debugging, log the raw payload (be careful with sensitive data)
-            console.log("[inbound] raw payload preview", raw.substring(0, 200));
             return new Response("invalid signature", { status: 401 });
           }
+        } else if (process.env.NODE_ENV === "production") {
+          // Fail closed: without a secret anyone could POST forged mail into a mailbox.
+          console.error("[inbound] RESEND_WEBHOOK_SECRET not configured - rejecting webhook");
+          return new Response("webhook not configured", { status: 500 });
         } else {
-          console.warn("[inbound] RESEND_WEBHOOK_SECRET not configured - skipping signature verification");
+          console.warn(
+            "[inbound] RESEND_WEBHOOK_SECRET not configured - skipping signature verification (dev only)",
+          );
         }
 
         let payload: { type?: string; data?: { email_id?: string } };
@@ -130,7 +134,8 @@ async function ingest(emailId: string) {
     const { data } = await supabase
       .from("mailboxes")
       .select("id, user_id, address")
-      .ilike("address", addr)
+      // case-insensitive but exact: `_` and `%` are LIKE wildcards, so escape them
+      .ilike("address", addr.replace(/[\\%_]/g, "\\$&"))
       .maybeSingle();
     if (data) {
       mailbox = data;
