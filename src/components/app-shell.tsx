@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import type { SessionMember } from "@/fn/auth";
 
@@ -203,6 +204,10 @@ function Sidebar({
             <div className="text-mono-label truncate">{member.role}</div>
           </div>
         </Link>
+        <div className="mt-2 flex items-center justify-between px-2 py-1 text-sm text-muted-foreground">
+          Theme
+          <ThemeToggle />
+        </div>
         <button
           onClick={handleSignOut}
           aria-label="Sign out"

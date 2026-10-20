@@ -9,6 +9,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { publicEnvScript } from "@/lib/env";
+import { themeInitScript } from "@/lib/theme";
 
 import appCss from "../styles.css?url";
 
@@ -49,8 +50,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <script
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: publicEnvScript() }}
