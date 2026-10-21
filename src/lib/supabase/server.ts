@@ -37,3 +37,20 @@ export function getSupabaseAdminClient() {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
+
+/**
+ * Authenticated user for server functions. Unlike a bare `auth.getUser()`, this
+ * refuses a password-only (aal1) session once the account has an MFA factor, so
+ * the second step can't be skipped by calling a server function directly.
+ */
+export async function getVerifiedUser(supabase: ReturnType<typeof getSupabaseServerClient>) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal && aal.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+    throw new Error("Two-factor verification required");
+  }
+  return user;
+}

@@ -1,6 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getSupabaseServerClient, getSupabaseAdminClient } from "@/lib/supabase/server";
+import {
+  getSupabaseServerClient,
+  getSupabaseAdminClient,
+  getVerifiedUser,
+} from "@/lib/supabase/server";
 import { serverEnv } from "@/lib/env";
 import { sendEmail } from "@/lib/resend";
 import { normalizeSubject, replySubject, snippetFromText, type Addr } from "@/lib/mail-utils";
@@ -10,10 +14,7 @@ import type { MailFolder } from "@/lib/database.types";
 
 async function requireMailbox() {
   const supabase = getSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const user = await getVerifiedUser(supabase);
 
   let { data: mailbox } = await supabase
     .from("mailboxes")

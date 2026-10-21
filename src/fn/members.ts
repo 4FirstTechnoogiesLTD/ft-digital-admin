@@ -1,15 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getSupabaseServerClient, getSupabaseAdminClient } from "@/lib/supabase/server";
+import {
+  getSupabaseServerClient,
+  getSupabaseAdminClient,
+  getVerifiedUser,
+} from "@/lib/supabase/server";
 import { serverEnv } from "@/lib/env";
 import { sendEmail } from "@/lib/resend";
 
 async function requireAdmin() {
   const supabase = getSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const user = await getVerifiedUser(supabase);
   const { data: me } = await supabase
     .from("members")
     .select("role, is_active")
@@ -204,6 +205,37 @@ export const resendInvite = createServerFn({ method: "POST" })
       subject: "Set your 4First Admin password",
       html: `<p><a href="${actionUrl}">Set your password</a> to sign in to the 4First admin center.</p>`,
       text: `Set your password: ${actionUrl}`,
+    });
+    return { ok: true };
+  });
+
+/** Lockout recovery: removes every MFA factor so the member must re-enrol at next sign-in. */
+export const resetMemberMfa = createServerFn({ method: "POST" })
+  .validator(z.object({ id: z.string().uuid() }))
+  .handler(async ({ data }) => {
+    const { admin, supabase, user } = await requireAdmin();
+    const { data: target } = await admin
+      .from("members")
+      .select("user_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!target) throw new Error("Member not found");
+
+    const { data: factors, error } = await admin.auth.admin.mfa.listFactors({
+      userId: target.user_id,
+    });
+    if (error) throw new Error(error.message);
+    for (const f of factors?.factors ?? []) {
+      const res = await admin.auth.admin.mfa.deleteFactor({ id: f.id, userId: target.user_id });
+      if (res.error) throw new Error(res.error.message);
+    }
+
+    await supabase.from("audit_log").insert({
+      actor_user_id: user.id,
+      action: "reset member MFA",
+      entity: "member",
+      entity_id: data.id,
+      diff: {} as never,
     });
     return { ok: true };
   });

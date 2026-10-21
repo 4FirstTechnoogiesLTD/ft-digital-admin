@@ -1,15 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseServerClient, getVerifiedUser } from "@/lib/supabase/server";
 
 type DB = ReturnType<typeof getSupabaseServerClient>;
 
 async function requireEditor() {
   const supabase = getSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const user = await getVerifiedUser(supabase);
   const { data: member } = await supabase
     .from("members")
     .select("role, is_active")

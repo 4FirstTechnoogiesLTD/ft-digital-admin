@@ -1,13 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getSupabaseServerClient, getSupabaseAdminClient } from "@/lib/supabase/server";
+import {
+  getSupabaseServerClient,
+  getSupabaseAdminClient,
+  getVerifiedUser,
+} from "@/lib/supabase/server";
 import { serverEnv } from "@/lib/env";
 
 export const getMailDomainStatus = createServerFn({ method: "GET" }).handler(async () => {
   const supabase = getSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const user = await getVerifiedUser(supabase);
   const { data: me } = await supabase
     .from("members")
     .select("role, is_active")

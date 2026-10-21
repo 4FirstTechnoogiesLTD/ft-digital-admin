@@ -1,6 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getSupabaseServerClient, getSupabaseAdminClient } from "@/lib/supabase/server";
+import {
+  getSupabaseServerClient,
+  getSupabaseAdminClient,
+  getVerifiedUser,
+} from "@/lib/supabase/server";
 
 /**
  * Self-service profile edits. `members` is admin-write under RLS, so this runs
@@ -16,10 +20,7 @@ export const updateMyProfile = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const supabase = getSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error("Not authenticated");
+    const user = await getVerifiedUser(supabase);
 
     const admin = getSupabaseAdminClient();
     const { data: me } = await admin

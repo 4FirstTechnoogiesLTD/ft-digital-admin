@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Eye, EyeOff, Loader2, ImagePlus } from "lucide-react";
 import { fetchSessionMember } from "@/fn/auth";
 import { updateMyProfile } from "@/fn/profile";
+import { MfaSetup } from "@/components/mfa-setup";
 import { UserAvatar } from "@/components/user-avatar";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { cn } from "@/lib/utils";
@@ -249,6 +250,8 @@ function ProfilePage() {
             </button>
           </div>
         </div>
+
+        <MfaSetup enrolled={member.mfaEnrolled} />
 
         {/* Change Password Section */}
         <div className="border border-border rounded-lg p-6">

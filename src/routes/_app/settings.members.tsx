@@ -1,7 +1,7 @@
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { UserPlus, Mail, ShieldCheck, KeyRound } from "lucide-react";
+import { UserPlus, Mail, ShieldCheck, KeyRound, ShieldOff } from "lucide-react";
 import { toast } from "sonner";
 import { fetchSessionMember } from "@/fn/auth";
 import {
@@ -10,6 +10,7 @@ import {
   updateMember,
   resendInvite,
   setMemberPassword,
+  resetMemberMfa,
 } from "@/fn/members";
 import { PageHeader } from "@/components/page-header";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -186,9 +187,33 @@ function MembersPage() {
       <KeyRound className="size-4" />
     </button>
   );
+  const mfaResetButton = (m: Member) => (
+    <button
+      onClick={async () => {
+        if (
+          !window.confirm(
+            `Remove two-factor for ${m.fullName || m.email}? They will have to set it up again at next sign-in.`,
+          )
+        )
+          return;
+        try {
+          await resetMemberMfa({ data: { id: m.id } });
+          toast.success("Two-factor reset");
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Failed");
+        }
+      }}
+      title="Reset two-factor"
+      aria-label={`Reset two-factor for ${m.email}`}
+      className="text-muted-foreground hover:text-foreground"
+    >
+      <ShieldOff className="size-4" />
+    </button>
+  );
   const rowActions = (m: Member) => (
     <div className="flex items-center justify-end gap-3">
       {passwordButton(m)}
+      {mfaResetButton(m)}
       {resendButton(m)}
     </div>
   );

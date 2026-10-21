@@ -11,6 +11,8 @@ export interface SessionMember {
   avatarUrl: string | null;
   /** admins always; other members only when granted recruitment access */
   canRecruit: boolean;
+  /** true once the account has a verified authenticator-app factor */
+  mfaEnrolled: boolean;
   mailbox: { id: string; address: string; displayName: string } | null;
 }
 
@@ -25,6 +27,10 @@ export const fetchSessionMember = createServerFn({ method: "GET" }).handler(
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return null;
+
+    // A password-only session on an MFA account isn't signed in until the code is entered.
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aal && aal.nextLevel === "aal2" && aal.currentLevel !== "aal2") return null;
 
     const { data: member } = await supabase
       .from("members")
@@ -47,6 +53,7 @@ export const fetchSessionMember = createServerFn({ method: "GET" }).handler(
       fullName: member.full_name,
       role: member.role,
       avatarUrl: member.avatar_url,
+      mfaEnrolled: aal?.currentLevel === "aal2",
       canRecruit: member.role === "admin" || Boolean(member.can_recruit),
       mailbox: mailbox
         ? { id: mailbox.id, address: mailbox.address, displayName: mailbox.display_name }

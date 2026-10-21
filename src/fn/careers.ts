@@ -1,6 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getSupabaseServerClient, getSupabaseAdminClient } from "@/lib/supabase/server";
+import {
+  getSupabaseServerClient,
+  getSupabaseAdminClient,
+  getVerifiedUser,
+} from "@/lib/supabase/server";
 import { serverEnv } from "@/lib/env";
 import { sendEmail } from "@/lib/resend";
 
@@ -11,10 +15,7 @@ import { sendEmail } from "@/lib/resend";
 
 async function requireRecruiter(opts: { adminOnly?: boolean } = {}) {
   const supabase = getSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  const user = await getVerifiedUser(supabase);
   const { data: me } = await supabase
     .from("members")
     .select("role, is_active, can_recruit")
@@ -39,19 +40,22 @@ async function audit(
   // never let a logging failure break the action it describes
   await admin
     .from("audit_log")
-    .insert({ actor_user_id: userId, action, entity, entity_id: entityId, diff: (diff ?? null) as never })
-    .then(() => {}, () => {});
+    .insert({
+      actor_user_id: userId,
+      action,
+      entity,
+      entity_id: entityId,
+      diff: (diff ?? null) as never,
+    })
+    .then(
+      () => {},
+      () => {},
+    );
 }
 
 export type JobStatus = "draft" | "published" | "closed" | "archived";
 export type ApplicationStatus =
-  | "received"
-  | "under_review"
-  | "shortlisted"
-  | "interview"
-  | "rejected"
-  | "hired"
-  | "withdrawn";
+  "received" | "under_review" | "shortlisted" | "interview" | "rejected" | "hired" | "withdrawn";
 
 // ── Settings ────────────────────────────────────────────────────────────────
 
@@ -116,7 +120,10 @@ export const listJobs = createServerFn({ method: "GET" }).handler(async () => {
     if (a.status === "received") c.fresh += 1;
     counts.set(a.job_id, c);
   }
-  return (jobs ?? []).map((j) => ({ ...j, applications: counts.get(j.id) ?? { total: 0, fresh: 0 } }));
+  return (jobs ?? []).map((j) => ({
+    ...j,
+    applications: counts.get(j.id) ?? { total: 0, fresh: 0 },
+  }));
 });
 
 export const getJob = createServerFn({ method: "GET" })
@@ -125,7 +132,10 @@ export const getJob = createServerFn({ method: "GET" })
     const { supabase } = await requireRecruiter();
     const [{ data: job }, { data: settings }] = await Promise.all([
       supabase.from("jobs").select("*").eq("id", data.id).maybeSingle(),
-      supabase.from("recruitment_settings").select("employment_types, work_arrangements").maybeSingle(),
+      supabase
+        .from("recruitment_settings")
+        .select("employment_types, work_arrangements")
+        .maybeSingle(),
     ]);
     if (!job) throw new Error("Vacancy not found");
     return { job, options: optionsFrom(settings) };
@@ -334,7 +344,15 @@ export const updateApplication = createServerFn({ method: "POST" })
     z.object({
       id: z.string().uuid(),
       status: z
-        .enum(["received", "under_review", "shortlisted", "interview", "rejected", "hired", "withdrawn"])
+        .enum([
+          "received",
+          "under_review",
+          "shortlisted",
+          "interview",
+          "rejected",
+          "hired",
+          "withdrawn",
+        ])
         .optional(),
       internal_notes: z.string().max(5000).nullable().optional(),
     }),
@@ -378,9 +396,16 @@ export const getDocumentUrl = createServerFn({ method: "POST" })
       .from("recruitment-docs")
       .createSignedUrl(doc.storage_key, 60, { download: doc.original_filename });
     if (error || !signed) throw new Error("Could not open this document");
-    await audit(admin, user.id, "downloaded applicant document", "application", doc.application_id, {
-      document_id: doc.id,
-    });
+    await audit(
+      admin,
+      user.id,
+      "downloaded applicant document",
+      "application",
+      doc.application_id,
+      {
+        document_id: doc.id,
+      },
+    );
     return { url: signed.signedUrl };
   });
 
@@ -414,7 +439,8 @@ export const retryNotification = createServerFn({ method: "POST" })
       try {
         const env = serverEnv();
         const link = `${env.APP_URL}/careers/applications/${app.id}`;
-        const when = new Date(app.submitted_at).toLocaleString("en-GB", { timeZone: "Africa/Lagos" }) + " WAT";
+        const when =
+          new Date(app.submitted_at).toLocaleString("en-GB", { timeZone: "Africa/Lagos" }) + " WAT";
         const rows: [string, string][] = [
           ["Applicant", `${app.first_name} ${app.last_name}`],
           ["Email", app.email],
@@ -424,7 +450,8 @@ export const retryNotification = createServerFn({ method: "POST" })
           ["Application ref", app.application_reference],
           ["Submitted", when],
         ];
-        const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const esc = (v: string) =>
+          v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         await sendEmail({
           from: `4First Careers <${env.SHARED_MAILBOX_OWNER || `careers@${env.MAIL_DOMAIN}`}>`,
           to: [recipient],
@@ -433,7 +460,10 @@ export const retryNotification = createServerFn({ method: "POST" })
           html:
             `<table style="border-collapse:collapse;">` +
             rows
-              .map(([l, v]) => `<tr><td style="padding:4px 16px 4px 0;color:#666;font-size:13px;">${l}</td><td style="padding:4px 0;font-size:14px;">${esc(v)}</td></tr>`)
+              .map(
+                ([l, v]) =>
+                  `<tr><td style="padding:4px 16px 4px 0;color:#666;font-size:13px;">${l}</td><td style="padding:4px 0;font-size:14px;">${esc(v)}</td></tr>`,
+              )
               .join("") +
             `</table><p style="margin-top:16px;"><a href="${link}">Open the application</a></p>`,
           text: rows.map(([l, v]) => `${l}: ${v}`).join("\n") + `\n\n${link}`,
@@ -454,9 +484,16 @@ export const retryNotification = createServerFn({ method: "POST" })
         last_error: error,
       })
       .eq("id", n.id);
-    await audit(admin, user.id, "retried recruitment notification", "application", n.application_id, {
-      ok: !error,
-    });
+    await audit(
+      admin,
+      user.id,
+      "retried recruitment notification",
+      "application",
+      n.application_id,
+      {
+        ok: !error,
+      },
+    );
     if (error) throw new Error(error);
     return { ok: true, status: "sent" as const };
   });
@@ -467,7 +504,10 @@ export const getRecruitmentSummary = createServerFn({ method: "GET" }).handler(a
   try {
     const { supabase } = await requireRecruiter();
     const [{ count: fresh }, { count: failed }, { count: open }] = await Promise.all([
-      supabase.from("job_applications").select("id", { count: "exact", head: true }).eq("status", "received"),
+      supabase
+        .from("job_applications")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "received"),
       supabase
         .from("application_notifications")
         .select("id", { count: "exact", head: true })
