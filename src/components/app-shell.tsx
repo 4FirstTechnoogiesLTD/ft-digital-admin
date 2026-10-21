@@ -12,6 +12,8 @@ import {
   Briefcase,
   UserSearch,
   LogOut,
+  Lock,
+  ShieldAlert,
   Menu,
   X,
 } from "lucide-react";
@@ -109,7 +111,24 @@ export function AppShell({ member, children }: { member: SessionMember; children
 
       <Sidebar member={member} open={open} onNavigate={() => setOpen(false)} />
 
-      <main className="min-w-0 flex-1 pt-14 md:pt-0 md:pl-64">{children}</main>
+      <main className="min-w-0 flex-1 pt-14 md:pt-0 md:pl-64">
+        {!member.mfaEnrolled && (
+          <div
+            role="alert"
+            className="flex items-start gap-3 border-b border-border bg-surface-2 px-4 py-3 text-sm sm:px-6"
+          >
+            <ShieldAlert className="mt-0.5 size-4 shrink-0 text-signal" />
+            <p>
+              <span className="font-medium">Two-factor authentication is required.</span>{" "}
+              <span className="text-muted-foreground">
+                The rest of the admin center is locked until you set up an authenticator app in the
+                Two-factor authentication section below.
+              </span>
+            </p>
+          </div>
+        )}
+        {children}
+      </main>
     </div>
   );
 }
@@ -166,6 +185,21 @@ function Sidebar({
                     ? pathname === it.to
                     : pathname === it.to || pathname.startsWith(it.to + "/");
                   const Icon = it.icon;
+                  if (!member.mfaEnrolled) {
+                    return (
+                      <li key={it.to}>
+                        <span
+                          aria-disabled
+                          title="Set up two-factor authentication to unlock"
+                          className="flex cursor-not-allowed items-center gap-2.5 rounded-md px-2 py-2 text-sm text-muted-foreground opacity-50"
+                        >
+                          <Icon className="size-4 shrink-0" />
+                          {it.label}
+                          <Lock className="ml-auto size-3" />
+                        </span>
+                      </li>
+                    );
+                  }
                   return (
                     <li key={it.to}>
                       <Link

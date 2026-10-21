@@ -49,7 +49,8 @@ export function MfaSetup({ enrolled }: { enrolled: boolean }) {
       setEnrolment({ factorId: data.id, qr: data.totp.qr_code, secret: data.totp.secret });
     } catch (err) {
       console.error(err);
-      toast.error("Could not start two-factor setup");
+      const reason = err instanceof Error && err.message ? `: ${err.message}` : "";
+      toast.error(`Could not start two-factor setup${reason}`);
     } finally {
       setBusy(false);
     }
@@ -73,7 +74,8 @@ export function MfaSetup({ enrolled }: { enrolled: boolean }) {
       await router.invalidate();
     } catch (err) {
       console.error(err);
-      toast.error("That code didn't work. Try the next one.");
+      const reason = err instanceof Error && err.message ? ` (${err.message})` : "";
+      toast.error(`That code didn't work. Try the next one.${reason}`);
       setCode("");
     } finally {
       setBusy(false);
