@@ -74,7 +74,7 @@ function ApplicationsPage() {
   }, [search.jobId, search.status, search.q, page]);
 
   const pageAllSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
-  const canSelectAllPages = pageAllSelected && !allMatching && total > rows.length;
+  const canSelectAllPages = !allMatching && total > rows.length;
   const hasSelection = selected.size > 0 || allMatching;
   const selectionCount = allMatching ? total : selected.size;
   const filters = {
@@ -235,22 +235,21 @@ function ApplicationsPage() {
             >
               Clear
             </button>
-            <span className="ml-auto text-muted-foreground">Exports use the selection</span>
+            {canSelectAllPages && (
+              <button
+                type="button"
+                onClick={() => setAllMatching(true)}
+                className="text-signal underline-offset-2 hover:underline"
+              >
+                Select all {total} applications{filtered ? " matching these filters" : ""}
+              </button>
+            )}
+            <span className="ml-auto text-muted-foreground">
+              {allMatching
+                ? `All ${total} selected across every page · exports use the selection`
+                : "Exports use the selection"}
+            </span>
           </div>
-        )}
-        {canSelectAllPages && (
-          <button
-            type="button"
-            onClick={() => setAllMatching(true)}
-            className="mb-3 text-xs text-signal underline-offset-2 hover:underline"
-          >
-            Select all {total} applications{filtered ? " matching these filters" : ""}
-          </button>
-        )}
-        {allMatching && (
-          <p className="mb-3 text-xs text-muted-foreground">
-            All {total} applications selected across every page.
-          </p>
         )}
 
         {rows.length === 0 ? (
