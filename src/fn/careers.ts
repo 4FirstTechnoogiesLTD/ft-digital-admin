@@ -322,6 +322,93 @@ export const listApplications = createServerFn({ method: "GET" })
     return { rows: rows ?? [], total: count ?? 0, pageSize: PAGE, jobs: jobs ?? [] };
   });
 
+/**
+ * Contact rows for the selected applications (explicit ids) or for every
+ * application matching the current filters (select-all across pages).
+ * Used for CSV/PDF export and for the broadcast recipient list; each use is audited.
+ */
+export const getApplicantContacts = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      purpose: z.enum(["export_csv", "export_pdf", "broadcast"]),
+      target: z.union([
+        z.object({ ids: z.array(z.string().uuid()).min(1).max(5000) }),
+        z.object({
+          filters: z.object({
+            jobId: z.string().uuid().optional(),
+            status: z.string().optional(),
+            q: z.string().trim().max(100).optional(),
+          }),
+        }),
+      ]),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { supabase, admin, user } = await requireRecruiter();
+    const cols =
+      "id, application_reference, job_title, first_name, last_name, email, phone, status, submitted_at";
+    type Row = {
+      id: string;
+      application_reference: string;
+      job_title: string;
+      first_name: string;
+      last_name: string;
+      email: string;
+      phone: string;
+      status: string;
+      submitted_at: string;
+    };
+    const rows: Row[] = [];
+
+    if ("ids" in data.target) {
+      for (let i = 0; i < data.target.ids.length; i += 150) {
+        const { data: part, error } = await supabase
+          .from("job_applications")
+          .select(cols)
+          .in("id", data.target.ids.slice(i, i + 150));
+        if (error) throw new Error(error.message);
+        rows.push(...((part ?? []) as Row[]));
+      }
+    } else {
+      const f = data.target.filters;
+      for (let from = 0; ; from += 1000) {
+        let q = supabase
+          .from("job_applications")
+          .select(cols)
+          .order("submitted_at", { ascending: false })
+          .range(from, from + 999);
+        if (f.jobId) q = q.eq("job_id", f.jobId);
+        if (f.status) q = q.eq("status", f.status);
+        if (f.q) {
+          const term = f.q.replace(/[,()%*\\]/g, " ").trim();
+          if (term) {
+            q = q.or(
+              `first_name.ilike.%${term}%,last_name.ilike.%${term}%,email.ilike.%${term}%,application_reference.ilike.%${term}%`,
+            );
+          }
+        }
+        const { data: part, error } = await q;
+        if (error) throw new Error(error.message);
+        rows.push(...((part ?? []) as Row[]));
+        if ((part?.length ?? 0) < 1000) break;
+      }
+    }
+    rows.sort((a, b) => b.submitted_at.localeCompare(a.submitted_at));
+
+    // never let a logging failure break the action it describes
+    await audit(
+      admin,
+      user.id,
+      data.purpose === "broadcast"
+        ? "collected applicants for broadcast"
+        : `exported applications (${data.purpose === "export_pdf" ? "pdf" : "csv"})`,
+      "application",
+      null,
+      { count: rows.length, scope: "ids" in data.target ? "selection" : "all_matching" },
+    );
+    return { rows };
+  });
+
 export const getApplication = createServerFn({ method: "GET" })
   .validator(z.object({ id: z.string().uuid() }))
   .handler(async ({ data }) => {

@@ -21,7 +21,21 @@ async function requireMailbox() {
     .eq("user_id", user.id)
     .maybeSingle();
   if (!mailbox) throw new Error("No mailbox");
-  return { supabase, mailbox };
+  return { supabase, mailbox, user };
+}
+
+async function audit(userId: string, action: string, entityId: string | null, diff: unknown) {
+  // never let a logging failure break the action it describes
+  await getSupabaseAdminClient()
+    .from("audit_log")
+    .insert({
+      actor_user_id: userId,
+      action,
+      entity: "mail_broadcast",
+      entity_id: entityId,
+      diff: diff as never,
+    })
+    .then(({ error }) => error && console.error("[audit] insert failed", error.message));
 }
 
 function chunk<T>(arr: T[], size: number): T[][] {
@@ -48,7 +62,7 @@ export const getThreadSenders = createServerFn({ method: "POST" })
     ]),
   )
   .handler(async ({ data }) => {
-    const { supabase, mailbox } = await requireMailbox();
+    const { supabase, mailbox, user } = await requireMailbox();
 
     let threadIds: string[];
     if ("threadIds" in data) {
@@ -84,12 +98,21 @@ export const getThreadSenders = createServerFn({ method: "POST" })
         .limit(5000);
       if (error) throw error;
       for (const m of msgs ?? []) {
-        const email = String(m.from_addr ?? "").trim().toLowerCase();
+        const email = String(m.from_addr ?? "")
+          .trim()
+          .toLowerCase();
         if (!EMAIL_RE.test(email) || email === mailbox.address.toLowerCase()) continue;
         if (!senders.has(email)) senders.set(email, { email, name: m.from_name ?? undefined });
       }
     }
 
+    await audit(user.id, "collected broadcast recipients", null, {
+      mode: "threadIds" in data ? "selection" : "all_in_folder",
+      folder: "allInFolder" in data ? data.allInFolder.folder : undefined,
+      search: "allInFolder" in data ? data.allInFolder.search : undefined,
+      threads: threadIds.length,
+      recipients: senders.size,
+    });
     return { senders: [...senders.values()], threadCount: threadIds.length };
   });
 
@@ -110,12 +133,13 @@ export const enqueueBroadcast = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    const { supabase, mailbox } = await requireMailbox();
+    const { supabase, mailbox, user } = await requireMailbox();
     const db = getSupabaseAdminClient();
 
     // dedupe case-insensitively
     const recipients = new Map<string, Addr>();
-    for (const a of data.to) recipients.set(a.email.toLowerCase(), { ...a, email: a.email.toLowerCase() });
+    for (const a of data.to)
+      recipients.set(a.email.toLowerCase(), { ...a, email: a.email.toLowerCase() });
     const list = [...recipients.values()];
 
     const now = new Date().toISOString();
@@ -163,6 +187,7 @@ export const enqueueBroadcast = createServerFn({ method: "POST" })
         text_body: data.text || null,
         attachment_paths: data.attachmentPaths,
         total: list.length,
+        created_by: user.id,
       })
       .select("id")
       .single();
@@ -180,8 +205,18 @@ export const enqueueBroadcast = createServerFn({ method: "POST" })
       if (error) throw error;
     }
 
+    await audit(user.id, "queued broadcast", broadcast.id, {
+      from: mailbox.address,
+      subject: data.subject,
+      recipients: list.length,
+      attachments: data.attachmentPaths.length,
+    });
     kickOutbox();
-    return { broadcastId: broadcast.id as string, threadId: thread.id as string, total: list.length };
+    return {
+      broadcastId: broadcast.id as string,
+      threadId: thread.id as string,
+      total: list.length,
+    };
   });
 
 /** Progress of one broadcast. Polling this also restarts a drain that died. */
@@ -215,5 +250,11 @@ export const getBroadcastProgress = createServerFn({ method: "GET" })
     ]);
 
     if (pending + sending > 0) kickOutbox();
-    return { total: b.total as number, sent, failed, queued: pending + sending, subject: b.subject as string };
+    return {
+      total: b.total as number,
+      sent,
+      failed,
+      queued: pending + sending,
+      subject: b.subject as string,
+    };
   });

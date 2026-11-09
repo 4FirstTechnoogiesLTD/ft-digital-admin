@@ -357,6 +357,113 @@ export const setThreadFlags = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * Delete selected conversations. Outside Trash this moves them to Trash
+ * (recoverable); inside Trash it deletes them permanently, attachments included.
+ * Accepts explicit ids (page selection) or every thread in a folder/search.
+ */
+export const deleteThreads = createServerFn({ method: "POST" })
+  .validator(
+    z.union([
+      z.object({ threadIds: z.array(z.string().uuid()).min(1).max(5000) }),
+      z.object({
+        allInFolder: z.object({
+          folder: z.enum(["inbox", "sent", "drafts", "archive", "spam", "trash"]),
+          search: z.string().trim().optional(),
+        }),
+      }),
+    ]),
+  )
+  .handler(async ({ data }) => {
+    const { supabase, user, mailbox } = await requireMailbox();
+
+    // resolve ids, always scoped to this mailbox
+    let ids: string[] = [];
+    let folder: MailFolder | null = null;
+    if ("threadIds" in data) {
+      const { data: rows, error } = await supabase
+        .from("threads")
+        .select("id, folder")
+        .eq("mailbox_id", mailbox.id)
+        .in("id", data.threadIds);
+      if (error) throw error;
+      ids = (rows ?? []).map((r) => r.id);
+      const folders = new Set((rows ?? []).map((r) => r.folder));
+      // permanent only if every selected thread is already in Trash
+      folder = folders.size === 1 && folders.has("trash") ? "trash" : null;
+    } else {
+      folder = data.allInFolder.folder;
+      for (let from = 0; ; from += 1000) {
+        let q = supabase
+          .from("threads")
+          .select("id")
+          .eq("mailbox_id", mailbox.id)
+          .eq("folder", folder)
+          .order("last_message_at", { ascending: false })
+          .range(from, from + 999);
+        const s = data.allInFolder.search;
+        if (s) q = q.or(`subject.ilike.%${s}%,snippet.ilike.%${s}%`);
+        const { data: page, error } = await q;
+        if (error) throw error;
+        ids.push(...(page ?? []).map((t) => t.id));
+        if ((page?.length ?? 0) < 1000) break;
+      }
+    }
+
+    const permanent = folder === "trash";
+    for (let i = 0; i < ids.length; i += 150) {
+      const part = ids.slice(i, i + 150);
+      if (permanent) {
+        // remove stored attachment files first (best effort), then rows (messages cascade)
+        const { data: msgs } = await supabase.from("messages").select("id").in("thread_id", part);
+        const msgIds = (msgs ?? []).map((m) => m.id);
+        if (msgIds.length) {
+          const { data: atts } = await supabase
+            .from("attachments")
+            .select("storage_path")
+            .in("message_id", msgIds);
+          const paths = (atts ?? []).map((a) => a.storage_path).filter(Boolean) as string[];
+          if (paths.length) await supabase.storage.from("mail-attachments").remove(paths);
+        }
+        const { error } = await supabase
+          .from("threads")
+          .delete()
+          .eq("mailbox_id", mailbox.id)
+          .in("id", part);
+        if (error) throw error;
+      } else {
+        await supabase
+          .from("threads")
+          .update({ folder: "trash" })
+          .eq("mailbox_id", mailbox.id)
+          .in("id", part);
+        await supabase
+          .from("messages")
+          .update({ folder: "trash" })
+          .eq("mailbox_id", mailbox.id)
+          .in("thread_id", part);
+      }
+    }
+
+    // never let a logging failure break the action it describes
+    await getSupabaseAdminClient()
+      .from("audit_log")
+      .insert({
+        actor_user_id: user.id,
+        action: permanent ? "permanently deleted conversations" : "moved conversations to trash",
+        entity: "mail_thread",
+        entity_id: null,
+        diff: {
+          mailbox: mailbox.address,
+          count: ids.length,
+          scope: "threadIds" in data ? "selection" : "all_in_folder",
+        },
+      })
+      .then(({ error }) => error && console.error("[audit] insert failed", error.message));
+
+    return { count: ids.length, permanent };
+  });
+
 export const setThreadRead = createServerFn({ method: "POST" })
   .validator(z.object({ threadId: z.string().uuid(), isRead: z.boolean() }))
   .handler(async ({ data }) => {

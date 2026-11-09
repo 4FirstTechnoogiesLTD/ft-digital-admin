@@ -25,7 +25,17 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getMailboxOverview, listThreads } from "@/fn/mail";
+import { getMailboxOverview, listThreads, deleteThreads } from "@/fn/mail";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { getThreadSenders, getBroadcastProgress } from "@/fn/broadcast";
 import type { ComposerDefaults } from "@/components/mail/message-composer";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -123,7 +133,8 @@ function MailLayout() {
 
   const pageAllSelected = threads.length > 0 && threads.every((t) => selected.has(t.id));
   const folderTotal = overview?.counts?.[folder]?.total ?? threads.length;
-  const canSelectAllPages = pageAllSelected && !allMatching && (q ? true : folderTotal > threads.length);
+  const canSelectAllPages =
+    pageAllSelected && !allMatching && (q ? true : folderTotal > threads.length);
   const selectionCount = allMatching ? (q ? null : folderTotal) : selected.size;
   const hasSelection = selected.size > 0 || allMatching;
 
@@ -147,13 +158,41 @@ function MailLayout() {
     setAllMatching(false);
   }
 
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const permanentDelete = folder === "trash";
+
+  async function runDelete() {
+    setDeleting(true);
+    try {
+      const res = await deleteThreads({
+        data: allMatching ? { allInFolder: { folder, search: q } } : { threadIds: [...selected] },
+      });
+      toast.success(
+        res.permanent
+          ? `Permanently deleted ${res.count} conversation${res.count === 1 ? "" : "s"}`
+          : `Moved ${res.count} conversation${res.count === 1 ? "" : "s"} to Trash`,
+      );
+      clearSelection();
+      setConfirmDelete(false);
+      refetchThreads();
+      qc.invalidateQueries({ queryKey: ["mail", "overview"] });
+      if (params.threadId && (allMatching || selected.has(params.threadId))) {
+        navigate({ to: "/mail", search: { folder, q } });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Couldn't delete the selected conversations");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   async function messageAll() {
     setResolving(true);
     try {
       const { senders, threadCount } = await getThreadSenders({
-        data: allMatching
-          ? { allInFolder: { folder, search: q } }
-          : { threadIds: [...selected] },
+        data: allMatching ? { allInFolder: { folder, search: q } } : { threadIds: [...selected] },
       });
       if (!senders.length) {
         toast.error(
@@ -165,7 +204,9 @@ function MailLayout() {
       }
       setComposeDefaults({ to: senders.map((s) => s.email).join(", "), broadcast: true });
       setComposeOpen(true);
-      toast.message(`${senders.length} unique sender${senders.length === 1 ? "" : "s"} from ${threadCount} conversation${threadCount === 1 ? "" : "s"}`);
+      toast.message(
+        `${senders.length} unique sender${senders.length === 1 ? "" : "s"} from ${threadCount} conversation${threadCount === 1 ? "" : "s"}`,
+      );
     } catch (err) {
       console.error(err);
       toast.error("Couldn't collect the sender addresses");
@@ -332,7 +373,14 @@ function MailLayout() {
                   disabled={resolving}
                   className="border border-border-strong bg-signal px-2.5 py-1 font-medium text-signal-foreground transition hover:brightness-110 disabled:opacity-60"
                 >
-                  {resolving ? "Collecting…" : "Message All"}
+                  {resolving ? "Collecting…" : "Send to Selected"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(true)}
+                  className="flex items-center gap-1 border border-border px-2.5 py-1 text-destructive transition hover:bg-destructive/10"
+                >
+                  <Trash2 className="size-3" /> Delete
                 </button>
                 <button
                   type="button"
@@ -453,6 +501,33 @@ function MailLayout() {
       >
         <Outlet />
       </div>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {permanentDelete ? "Delete permanently?" : "Move to Trash?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {permanentDelete
+                ? `${selectionCount ?? "All matching"} conversation(s) and their attachments will be deleted for good. This can't be undone.`
+                : `${selectionCount ?? "All matching"} conversation(s) will be moved to Trash. You can restore them from there.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault();
+                runDelete();
+              }}
+            >
+              {deleting ? "Deleting…" : permanentDelete ? "Delete permanently" : "Move to Trash"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <ComposeDialog
         open={composeOpen}

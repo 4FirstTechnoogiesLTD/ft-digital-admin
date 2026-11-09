@@ -53,11 +53,16 @@ async function drain() {
         .limit(1)
         .maybeSingle();
       if (!waiting) return;
-      await sleep(Math.min(Math.max(new Date(waiting.send_after).getTime() - Date.now(), 250), 30_000));
+      await sleep(
+        Math.min(Math.max(new Date(waiting.send_after).getTime() - Date.now(), 250), 30_000),
+      );
       continue;
     }
 
     const retryAfterMs = await sendRow(db, row);
+    await auditIfFinished(db, row.broadcast_id).catch((e) =>
+      console.error("[outbox] audit failed", e),
+    );
     const elapsed = Date.now() - started;
     await sleep(Math.max(retryAfterMs ?? 0, MIN_INTERVAL_MS - elapsed, 0));
   }
@@ -151,6 +156,44 @@ async function sendRow(
       .eq("id", row.id);
     return throttled ? backoff : undefined;
   }
+}
+
+/** Writes one "broadcast finished" audit entry when no rows remain in flight. */
+async function auditIfFinished(db: ReturnType<typeof getSupabaseAdminClient>, broadcastId: string) {
+  const count = async (statuses: string[]) => {
+    const { count } = await db
+      .from("mail_outbox")
+      .select("id", { count: "exact", head: true })
+      .eq("broadcast_id", broadcastId)
+      .in("status", statuses);
+    return count ?? 0;
+  };
+  if ((await count(["pending", "sending"])) > 0) return;
+
+  // already logged (e.g. the process restarted after the last send)?
+  const { data: existing } = await db
+    .from("audit_log")
+    .select("id")
+    .eq("entity", "mail_broadcast")
+    .eq("entity_id", broadcastId)
+    .eq("action", "finished broadcast")
+    .limit(1)
+    .maybeSingle();
+  if (existing) return;
+
+  const [sent, failed] = await Promise.all([count(["sent"]), count(["failed"])]);
+  const { data: b } = await db
+    .from("mail_broadcasts")
+    .select("created_by, subject, total")
+    .eq("id", broadcastId)
+    .maybeSingle();
+  await db.from("audit_log").insert({
+    actor_user_id: b?.created_by ?? null,
+    action: "finished broadcast",
+    entity: "mail_broadcast",
+    entity_id: broadcastId,
+    diff: { subject: b?.subject, total: b?.total, sent, failed },
+  });
 }
 
 async function loadAttachments(

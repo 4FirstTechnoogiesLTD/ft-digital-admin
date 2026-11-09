@@ -20,7 +20,9 @@ export function ComposeDialog({ open, onOpenChange, mailbox, defaults, onSent }:
       {/* full-screen sheet on phones, centred dialog from sm up */}
       <DialogContent className="h-dvh max-h-dvh max-w-none rounded-none border-0 sm:h-auto sm:max-h-[90dvh] sm:max-w-2xl sm:rounded-lg sm:border">
         <DialogHeader className="sticky top-0 z-10 -mx-6 -mt-6 flex-row items-center justify-between gap-2 space-y-0 bg-background px-6 pb-3 pr-12 pt-6">
-          <DialogTitle className="text-display text-2xl">{defaults?.broadcast ? "Message all" : "New message"}</DialogTitle>
+          <DialogTitle className="text-display text-2xl">
+            {defaults?.broadcast ? "Send to selected" : "New message"}
+          </DialogTitle>
           <button
             type="button"
             onClick={toggleBodyTheme}
