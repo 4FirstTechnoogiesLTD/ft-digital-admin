@@ -8,6 +8,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { docToHtml } from "@/lib/tiptap";
 import { plainTextFromHtml, parseAddressList, sanitizeEmailHtml } from "@/lib/mail-utils";
 import { sendMessage } from "@/fn/mail";
+import { enqueueBroadcast } from "@/fn/broadcast";
 import { EMPTY_DOC } from "@/lib/tiptap";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,8 @@ export interface ComposerDefaults {
   inReplyToMessageId?: string;
   quotedHtml?: string;
   body?: JSONContent;
+  /** Queue one individual email per recipient instead of a single multi-recipient send. */
+  broadcast?: boolean;
 }
 
 interface Props {
@@ -31,7 +34,7 @@ interface Props {
   compact?: boolean;
   /** Render the message body, signature and quoted text on a white background. */
   lightBody?: boolean;
-  onSent: (threadId: string) => void;
+  onSent: (threadId: string, extra?: { broadcastId?: string }) => void;
   onCancel?: () => void;
 }
 
@@ -114,6 +117,20 @@ export function MessageComposer({
       if (mailbox?.signature && includeSignature) {
         html += `<br>--<br>${docToHtml(mailbox.signature)}`;
       }
+      if (defaults?.broadcast) {
+        const res = await enqueueBroadcast({
+          data: {
+            to: toList.map((a) => ({ name: a.name, email: a.email })),
+            subject: subject || "(no subject)",
+            html,
+            text: plainTextFromHtml(html),
+            attachmentPaths: attachments.map((a) => a.path),
+          },
+        });
+        toast.success(`Queued ${res.total} individual email${res.total === 1 ? "" : "s"}`);
+        onSent(res.threadId, { broadcastId: res.broadcastId });
+        return;
+      }
       const res = await sendMessage({
         data: {
           threadId: defaults?.threadId,
@@ -147,13 +164,27 @@ export function MessageComposer({
       )}
 
       <Row label="To">
-        <input
-          value={to}
-          onChange={(e) => setTo(e.target.value)}
-          placeholder="name@example.com, another@example.com"
-          className="w-full min-w-0 bg-transparent text-base focus:outline-none md:text-sm"
-        />
-        {!showCc && (
+        {defaults?.broadcast ? (
+          <div className="w-full min-w-0">
+            <textarea
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              rows={2}
+              className="max-h-28 w-full min-w-0 resize-y bg-transparent text-base focus:outline-none md:text-sm"
+            />
+            <p className="text-mono-label mt-1">
+              {parseAddressList(to).length} recipients · sent individually, nobody sees the others
+            </p>
+          </div>
+        ) : (
+          <input
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            placeholder="name@example.com, another@example.com"
+            className="w-full min-w-0 bg-transparent text-base focus:outline-none md:text-sm"
+          />
+        )}
+        {!showCc && !defaults?.broadcast && (
           <button
             type="button"
             onClick={() => setShowCc(true)}

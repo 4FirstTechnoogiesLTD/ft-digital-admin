@@ -9,7 +9,7 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   mailbox: { address: string; displayName: string; signature?: JSONContent | null } | null;
   defaults?: ComposerDefaults;
-  onSent: (threadId: string) => void;
+  onSent: (threadId: string, extra?: { broadcastId?: string }) => void;
 }
 
 export function ComposeDialog({ open, onOpenChange, mailbox, defaults, onSent }: Props) {
@@ -20,7 +20,7 @@ export function ComposeDialog({ open, onOpenChange, mailbox, defaults, onSent }:
       {/* full-screen sheet on phones, centred dialog from sm up */}
       <DialogContent className="h-dvh max-h-dvh max-w-none rounded-none border-0 sm:h-auto sm:max-h-[90dvh] sm:max-w-2xl sm:rounded-lg sm:border">
         <DialogHeader className="sticky top-0 z-10 -mx-6 -mt-6 flex-row items-center justify-between gap-2 space-y-0 bg-background px-6 pb-3 pr-12 pt-6">
-          <DialogTitle className="text-display text-2xl">New message</DialogTitle>
+          <DialogTitle className="text-display text-2xl">{defaults?.broadcast ? "Message all" : "New message"}</DialogTitle>
           <button
             type="button"
             onClick={toggleBodyTheme}
@@ -34,9 +34,9 @@ export function ComposeDialog({ open, onOpenChange, mailbox, defaults, onSent }:
           mailbox={mailbox}
           defaults={defaults}
           lightBody={lightBody}
-          onSent={(id) => {
+          onSent={(id, extra) => {
             onOpenChange(false);
-            onSent(id);
+            onSent(id, extra);
           }}
           onCancel={() => onOpenChange(false)}
         />

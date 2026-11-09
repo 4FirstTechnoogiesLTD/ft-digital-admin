@@ -24,7 +24,10 @@ import {
   Settings2,
   RefreshCw,
 } from "lucide-react";
+import { toast } from "sonner";
 import { getMailboxOverview, listThreads } from "@/fn/mail";
+import { getThreadSenders, getBroadcastProgress } from "@/fn/broadcast";
+import type { ComposerDefaults } from "@/components/mail/message-composer";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { cn } from "@/lib/utils";
 import { ComposeDialog } from "@/components/mail/compose-dialog";
@@ -105,6 +108,78 @@ function MailLayout() {
   }, [qc, refetchThreads]);
 
   const threads = threadsData?.threads ?? [];
+
+  // ── selection ────────────────────────────────────────────────────────────
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [allMatching, setAllMatching] = useState(false); // select-all across every page
+  const [resolving, setResolving] = useState(false);
+  const [composeDefaults, setComposeDefaults] = useState<ComposerDefaults | undefined>();
+  const [broadcastId, setBroadcastId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelected(new Set());
+    setAllMatching(false);
+  }, [folder, q]);
+
+  const pageAllSelected = threads.length > 0 && threads.every((t) => selected.has(t.id));
+  const folderTotal = overview?.counts?.[folder]?.total ?? threads.length;
+  const canSelectAllPages = pageAllSelected && !allMatching && (q ? true : folderTotal > threads.length);
+  const selectionCount = allMatching ? (q ? null : folderTotal) : selected.size;
+  const hasSelection = selected.size > 0 || allMatching;
+
+  function toggleOne(id: string) {
+    setAllMatching(false);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function togglePage() {
+    setAllMatching(false);
+    setSelected(pageAllSelected ? new Set() : new Set(threads.map((t) => t.id)));
+  }
+
+  function clearSelection() {
+    setSelected(new Set());
+    setAllMatching(false);
+  }
+
+  async function messageAll() {
+    setResolving(true);
+    try {
+      const { senders, threadCount } = await getThreadSenders({
+        data: allMatching
+          ? { allInFolder: { folder, search: q } }
+          : { threadIds: [...selected] },
+      });
+      if (!senders.length) {
+        toast.error(
+          folder === "sent"
+            ? "Sent conversations have no senders to message"
+            : "No sender addresses found in the selection",
+        );
+        return;
+      }
+      setComposeDefaults({ to: senders.map((s) => s.email).join(", "), broadcast: true });
+      setComposeOpen(true);
+      toast.message(`${senders.length} unique sender${senders.length === 1 ? "" : "s"} from ${threadCount} conversation${threadCount === 1 ? "" : "s"}`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Couldn't collect the sender addresses");
+    } finally {
+      setResolving(false);
+    }
+  }
+
+  const { data: progress } = useQuery({
+    queryKey: ["mail", "broadcast", broadcastId],
+    queryFn: () => getBroadcastProgress({ data: { broadcastId: broadcastId! } }),
+    enabled: Boolean(broadcastId),
+    refetchInterval: (query) => (query.state.data && query.state.data.queued === 0 ? false : 2500),
+  });
 
   function submitSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -237,6 +312,58 @@ function MailLayout() {
             <RefreshCw className="size-3.5" />
           </button>
         </form>
+        {threads.length > 0 && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border px-4 py-1.5 text-xs">
+            <input
+              type="checkbox"
+              aria-label="Select all on this page"
+              checked={pageAllSelected}
+              onChange={togglePage}
+              className="accent-signal"
+            />
+            {hasSelection ? (
+              <>
+                <span className="text-muted-foreground">
+                  {selectionCount === null ? "All matching" : `${selectionCount} selected`}
+                </span>
+                <button
+                  type="button"
+                  onClick={messageAll}
+                  disabled={resolving}
+                  className="border border-border-strong bg-signal px-2.5 py-1 font-medium text-signal-foreground transition hover:brightness-110 disabled:opacity-60"
+                >
+                  {resolving ? "Collecting…" : "Message All"}
+                </button>
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  Clear
+                </button>
+              </>
+            ) : (
+              <span className="text-muted-foreground">Select</span>
+            )}
+            {canSelectAllPages && (
+              <button
+                type="button"
+                onClick={() => setAllMatching(true)}
+                className="basis-full text-left text-signal underline-offset-2 hover:underline"
+              >
+                {q
+                  ? `Select every conversation matching “${q}”`
+                  : `Select all ${folderTotal} conversations in ${folder}`}
+              </button>
+            )}
+            {allMatching && (
+              <span className="basis-full text-muted-foreground">
+                {q ? "All matching conversations" : `All ${folderTotal} conversations`} selected
+                across every page.
+              </span>
+            )}
+          </div>
+        )}
         <div className="flex-1 overflow-y-auto">
           {threads.length === 0 ? (
             <p className="p-8 text-center text-sm text-muted-foreground">Nothing here.</p>
@@ -246,13 +373,20 @@ function MailLayout() {
                 const active = params.threadId === t.id;
                 const unread = t.unread_count > 0;
                 return (
-                  <li key={t.id}>
+                  <li key={t.id} className="relative">
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${t.subject || "conversation"}`}
+                      checked={allMatching || selected.has(t.id)}
+                      onChange={() => toggleOne(t.id)}
+                      className="absolute left-4 top-4 z-10 accent-signal"
+                    />
                     <Link
                       to="/mail/$threadId"
                       params={{ threadId: t.id }}
                       search={{ folder, q }}
                       className={cn(
-                        "block border-b border-border px-4 py-3 transition-colors",
+                        "block border-b border-border py-3 pl-10 pr-4 transition-colors",
                         active ? "bg-surface-2" : "hover:bg-surface",
                       )}
                     >
@@ -292,6 +426,25 @@ function MailLayout() {
             </ul>
           )}
         </div>
+        {broadcastId && progress && (
+          <div className="flex items-center justify-between gap-2 border-t border-border bg-surface px-4 py-2 text-xs">
+            <span className="min-w-0 truncate text-muted-foreground">
+              {progress.queued > 0
+                ? `Sending “${progress.subject}” · ${progress.sent}/${progress.total} sent`
+                : `Broadcast done · ${progress.sent}/${progress.total} sent`}
+              {progress.failed > 0 && ` · ${progress.failed} failed`}
+            </span>
+            {progress.queued === 0 && (
+              <button
+                type="button"
+                onClick={() => setBroadcastId(null)}
+                className="shrink-0 text-muted-foreground hover:text-foreground"
+              >
+                Dismiss
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* reading pane */}
@@ -303,11 +456,20 @@ function MailLayout() {
 
       <ComposeDialog
         open={composeOpen}
-        onOpenChange={setComposeOpen}
+        onOpenChange={(v) => {
+          setComposeOpen(v);
+          if (!v) setComposeDefaults(undefined);
+        }}
         mailbox={overview?.mailbox ?? null}
-        onSent={(threadId) => {
+        defaults={composeDefaults}
+        onSent={(threadId, extra) => {
           refetchThreads();
           qc.invalidateQueries({ queryKey: ["mail", "overview"] });
+          if (extra?.broadcastId) {
+            setBroadcastId(extra.broadcastId);
+            clearSelection();
+            return;
+          }
           navigate({ to: "/mail/$threadId", params: { threadId }, search: { folder, q } });
         }}
       />
